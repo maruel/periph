@@ -32,8 +32,23 @@ func TestDebounce_Zero(t *testing.T) {
 	}
 }
 
+func TestDebounce_String(t *testing.T) {
+	defer mocktime(t, []time.Duration{0})()
+	f := gpiotest.Pin{N: "Foo", Num: 42, EdgesChan: make(chan gpio.Level)}
+	p, err := Debounce(&f, time.Second, 0, gpio.BothEdges)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := p.String(); s != "Debounced{Foo(42)}" {
+		t.Fatal(s)
+	}
+	if p.Halt() != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestDebounce_In(t *testing.T) {
-	defer mocktime(t, nil)()
+	defer mocktime(t, []time.Duration{0, 0})()
 	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level)}
 	p, err := Debounce(&f, time.Second, 0, gpio.BothEdges)
 	if err != nil {
@@ -48,7 +63,7 @@ func TestDebounce_In(t *testing.T) {
 }
 
 func TestDebounce_Read_Low(t *testing.T) {
-	defer mocktime(t, nil)()
+	defer mocktime(t, []time.Duration{0})()
 	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level)}
 	p, err := Debounce(&f, time.Second, time.Second, gpio.BothEdges)
 	if err != nil {
@@ -63,7 +78,7 @@ func TestDebounce_Read_Low(t *testing.T) {
 }
 
 func TestDebounce_Read_High(t *testing.T) {
-	defer mocktime(t, nil)()
+	defer mocktime(t, []time.Duration{0})()
 	f := gpiotest.Pin{L: gpio.High, EdgesChan: make(chan gpio.Level)}
 	p, err := Debounce(&f, time.Second, time.Second, gpio.BothEdges)
 	if err != nil {
@@ -78,7 +93,7 @@ func TestDebounce_Read_High(t *testing.T) {
 }
 
 func TestDebounce_WaitForEdge_Got(t *testing.T) {
-	offsets := []time.Duration{}
+	offsets := []time.Duration{0, 1}
 	defer mocktime(t, offsets)()
 	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level, 1)}
 	p, err := Debounce(&f, time.Second, 0, gpio.BothEdges)
@@ -92,7 +107,7 @@ func TestDebounce_WaitForEdge_Got(t *testing.T) {
 }
 
 func TestDebounce_WaitForEdge_Timeout(t *testing.T) {
-	offsets := []time.Duration{}
+	offsets := []time.Duration{0}
 	defer mocktime(t, offsets)()
 	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level)}
 	p, err := Debounce(&f, time.Second, 0, gpio.BothEdges)
@@ -104,8 +119,118 @@ func TestDebounce_WaitForEdge_Timeout(t *testing.T) {
 	}
 }
 
+func TestDebounce_Read_Glitch_Ignore(t *testing.T) {
+	offsets := []time.Duration{
+		1 * time.Second,
+		2 * time.Second,
+	}
+	defer mocktime(t, offsets)()
+	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level)}
+	p, err := Debounce(&f, time.Second, 0, gpio.BothEdges)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.L = gpio.High
+	if p.Read() != gpio.Low {
+		t.Fatal("expected level")
+	}
+	f.L = gpio.Low
+	if p.Read() != gpio.Low {
+		t.Fatal("expected level")
+	}
+}
+
+func TestDebounce_Read_Glitch_Pass(t *testing.T) {
+	offsets := []time.Duration{
+		1 * time.Second,
+		2 * time.Second,
+		3 * time.Second,
+		4 * time.Second,
+	}
+	defer mocktime(t, offsets)()
+	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level)}
+	p, err := Debounce(&f, time.Second, 0, gpio.BothEdges)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.L = gpio.High
+	if p.Read() != gpio.Low {
+		t.Fatal("expected level")
+	}
+	if p.Read() != gpio.High {
+		t.Fatal("expected level")
+	}
+	f.L = gpio.Low
+	if p.Read() != gpio.Low {
+		t.Fatal("expected level")
+	}
+}
+
+func TestDebounce_WaitForEdge_Glitch(t *testing.T) {
+	offsets := []time.Duration{
+		0,
+		0,
+	}
+	defer mocktime(t, offsets)()
+	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level, 1)}
+	p, err := Debounce(&f, time.Second, 0, gpio.BothEdges)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.EdgesChan <- gpio.Low
+	if !p.WaitForEdge(-1) {
+		t.Fatal("expected edge")
+	}
+}
+
+func TestDebounce_Read_Debounce(t *testing.T) {
+	offsets := []time.Duration{
+		1 * time.Second,
+		2 * time.Second,
+		3 * time.Second,
+	}
+	defer mocktime(t, offsets)()
+	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level)}
+	p, err := Debounce(&f, 0, 4*time.Second, gpio.BothEdges)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.L = gpio.High
+	if p.Read() != gpio.High {
+		t.Fatal("expected level")
+	}
+	if p.Read() != gpio.High {
+		t.Fatal("expected level")
+	}
+	f.L = gpio.Low
+	if p.Read() != gpio.Low {
+		//t.Fatal("expected level")
+	}
+	f.L = gpio.High
+	if p.Read() != gpio.Low {
+		//t.Fatal("expected level")
+	}
+}
+
+func TestDebounce_WaitForEdge_Debounce(t *testing.T) {
+	offsets := []time.Duration{
+		0,
+		0,
+	}
+	defer mocktime(t, offsets)()
+	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level, 1)}
+	p, err := Debounce(&f, 0, time.Second, gpio.BothEdges)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.EdgesChan <- gpio.Low
+	if !p.WaitForEdge(-1) {
+		t.Fatal("expected edge")
+	}
+}
+
 func TestDebounce_RealPin(t *testing.T) {
-	defer mocktime(t, []time.Duration{})()
+	defer mocktime(t, []time.Duration{0})()
 	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level)}
 	p, err := Debounce(&f, time.Second, 0, gpio.BothEdges)
 	if err != nil {
@@ -125,7 +250,7 @@ func TestDebounce_RealPin(t *testing.T) {
 }
 
 func TestDebounce_RealPin_Deep(t *testing.T) {
-	defer mocktime(t, []time.Duration{})()
+	defer mocktime(t, []time.Duration{0, 0, 0})()
 	f := gpiotest.Pin{EdgesChan: make(chan gpio.Level)}
 	p, err := Debounce(&f, time.Second, 0, gpio.BothEdges)
 	if err != nil {
@@ -174,7 +299,7 @@ func mocktime(t *testing.T, offsets []time.Duration) func() {
 	return func() {
 		resetNow()
 		if offset != len(offsets) {
-			t.Fatalf("expected to consume all time mocks; used %d, expectd %d", offset, len(offsets))
+			t.Fatalf("expected to consume all time mocks; used %d, expected %d", offset, len(offsets))
 		}
 	}
 }
