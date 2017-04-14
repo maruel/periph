@@ -61,6 +61,9 @@ type MemAlloc struct {
 }
 
 // Close unmaps the physical memory allocation.
+//
+// It is important to call this function otherwise the memory is locked until
+// the host reboots.
 func (m *MemAlloc) Close() error {
 	if err := munlock(m.orig); err != nil {
 		return err
@@ -123,10 +126,35 @@ func allocLinux(size int) (*MemAlloc, error) {
 		return nil, wrapf("large allocation is not yet implemented")
 	}
 	// First allocate a chunk of user space memory.
-	b, err := uallocMemLocked(size)
+	b, err := uallocMem(size)
 	if err != nil {
 		return nil, err
 	}
+	// Write to it to force it to be in memory.
+	for i := 0; i < len(b); i++ {
+		b[i] = 0xAA
+	}
+	for i := 0; i < len(b); i++ {
+		b[i] = 0xFF
+	}
+	for i := 0; i < len(b); i++ {
+		b[i] = 0x00
+	}
+
+	// Now allocate a second block of memory just to have a free contiguous chunk
+	// of user space addresses available just to create a quick hole.
+	u, err := uallocMem(size)
+	if err != nil {
+		return nil, err
+	}
+	if err = munmap(u); err != nil {
+		return nil, err
+	}
+
+	if err := mlock(b); err != nil {
+		return nil, err
+	}
+
 	pages := make([]uint64, (size+pageSize-1)/pageSize)
 	// Figure out the physical memory addresses.
 	for i := range pages {
