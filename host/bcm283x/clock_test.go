@@ -272,29 +272,29 @@ func TestCalcSource_inexact(t *testing.T) {
 	t.Parallel()
 	// clockDiviMax is 4095, an odd number.
 	data := []struct {
-		desired       physic.Frequency
-		maxWaitCycles uint32
-		//src                clockCtl
-		//clkDiv, waitCycles int
-		//expected           physic.Frequency
+		desired            physic.Frequency
+		maxWaitCycles      uint32
+		src                clockCtl
+		clkDiv, waitCycles int
+		expected           physic.Frequency
 	}{
 		{
 			// 2930/1465 = 2x
 			clk19dot2MHz / clockDiviMax / (dmaWaitcyclesMax + 1) * physic.Hertz,
 			dmaWaitcyclesMax + 1,
-			//clockSrc19dot2MHz, 2121, 31, 292,
+			clockSrc19dot2MHz, 2121, 31, 292,
 		},
 		{
 			// 93795/46886 = 2.0004 (error: 0.025%)
 			clk19dot2MHz / clockDiviMax * physic.Hertz,
 			dmaWaitcyclesMax + 1,
-			//clockSrcPLLD, 2051, 26, 9376,
+			clockSrcPLLD, 2051, 26, 9376,
 		},
 		{
 			// 1465.2014/7 = 209.31x (error: 0.15%)
 			7 * physic.Hertz,
 			dmaWaitcyclesMax + 1,
-			//clockSrc19dot2MHz, 4095, 32, 146, // 146.52014
+			clockSrc19dot2MHz, 4095, 32, 146, // 146.52014
 		},
 	}
 	for i, line := range data {
@@ -302,8 +302,11 @@ func TestCalcSource_inexact(t *testing.T) {
 		t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
 			t.Parallel()
 			src, clkDiv, waitCycles, f, err := calcSource(line.desired, line.maxWaitCycles)
-			if src != 0 || clkDiv != 0 || waitCycles != 0 || f != 0 || err == nil {
-				t.Fatalf("inexact match is not yet implemented: %s, %d, %d, %d", src, clkDiv, waitCycles, f)
+			if src != line.src || line.clkDiv != clkDiv || line.waitCycles != waitCycles || line.expected != f || err != nil {
+				t.Fatalf("calcSource(%s, %d) = %s / %d / %d = %s  expected %s / %d / %d = %s",
+					line.desired, line.maxWaitCycles,
+					src, clkDiv, waitCycles, f,
+					line.src, line.clkDiv, line.waitCycles, line.expected)
 			}
 		})
 	}

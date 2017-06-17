@@ -211,6 +211,58 @@ func findDivisorOversampled(src, desired physic.Frequency, maxWaitCycles uint32)
 	return 0, 0, 0
 }
 
+// findDivisor finds the best divisors clk and wait to reduce src to desired hz.
+//
+// Returns divisors x, y, actual frequency, error. The actual selected
+// frequency may be largely oversampled.
+func findDivisor(src, desired physic.Frequency, maxWaitCycles, maxDiv int) (int, int, physic.Frequency, uint64) {
+	if m, n := findDivisorExact(src, desired, maxWaitCycles); m != 0 {
+		return m, n, desired, 0
+	}
+	// Allowed oversampling depends on the desiredHz. Cap oversampling because
+	// oversampling at 10x in the 1Mhz range becomes unreasonable in term of
+	// memory usage.
+	for i := uint64(2); ; i++ {
+		d := i * desired
+		if d > 100000 && i > 10 {
+			break
+		}
+		if m, n := findDivisorExact(src, d, maxWaitCycles); m != 0 {
+			return m, n, d, 0
+		}
+	}
+	// There's no exact match, even with oversampling. That means that we need to
+	// select a value with errors. Oversample by 2x to reduce the relative error
+	// a bit. Multiply both srcHz and desired by 100x to include additional small
+	// error detection.
+	desired *= 200
+	src *= 100
+	minErr := uint64(0xFFFFFFFFFFFFFFF)
+	m := 0
+	n := 0
+	selected := uint64(0)
+	for i := 1; i <= maxWaitCycles; i++ {
+		maxY := maxDiv
+		if maxY > i {
+			maxY = i
+		}
+		for j := 1; j <= maxY; j++ {
+			actual := (src / uint64(i)) / uint64(j)
+			err := (actual - desired)
+			if err < 0 {
+				err = -err
+			}
+			if minErr > err {
+				minErr = err
+				selected = actual
+				m = i
+				n = j
+			}
+		}
+	}
+	return m, n, selected / 100, minErr / 100
+}
+
 // calcSource choose the best source to get the exact desired clock.
 //
 // It calculates the clock source, the clock divisor and the wait cycles, if
@@ -245,7 +297,19 @@ func calcSource(f physic.Frequency, maxWaitCycles uint32) (clockCtl, uint32, uin
 	if div500 != 0 {
 		return clockSrcPLLD, div500, wait500, f500, nil
 	}
-	return 0, 0, 0, 0, errors.New("failed to find a good clock")
+	x19, y19, actual19, rest19 := findDivisor(clk19dot2MHz, f, clockDiviMax, maxDiv)
+	if rest19 == 0 {
+		return clockSrc19dot2MHz, x19, y19, actual19, nil
+	}
+	x500, y500, actual500, rest500 := findDivisor(clk500MHz, f, clockDiviMax, maxDiv)
+	if rest500 == 0 {
+		return clockSrcPLLD, x500, y500, actual500, nil
+	}
+	// No exact match. Choose the one with the lowest (absolute) error.
+	if rest19 < rest500 {
+		return clockSrc19dot2MHz, x19, y19, actual19, nil
+	}
+	return clockSrcPLLD, x500, y500, actual500, nil
 }
 
 // set changes the clock frequency to the desired value or the closest one
