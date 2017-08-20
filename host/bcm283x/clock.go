@@ -7,6 +7,7 @@ package bcm283x
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -153,6 +154,58 @@ type clock struct {
 	div clockDiv
 }
 
+// primesHz is the primes needed to find greatedCommonDivisorHz. In practice
+// only primes for clk19dot2MHz and clk500MHz are needed.
+//
+// 100 is not prime :) but it helps accelerate greatedCommonDivisorHz for the
+// common case, which is for both values in the kHz range.
+var primesHz = []uint64{100, 2, 3, 5}
+
+func greatedCommonDivisorHz(a, b uint64) uint64 {
+	gcd := uint64(1)
+	prime := primesHz[0]
+	for i := 0; ; {
+		r := a % prime
+		s := b % prime
+		if r == 0 && s == 0 {
+			a /= prime
+			b /= prime
+			gcd *= prime
+			continue
+		}
+		if i++; i == len(primesHz) {
+			return gcd
+		}
+		if prime = primesHz[i]; prime > a || prime > b {
+			return gcd
+		}
+	}
+}
+
+// primes is the primes needed to find greatedCommonDivisor.
+var primes = []int{2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97}
+
+func greatedCommonDivisor(a, b int) int {
+	gcd := 1
+	prime := primes[0]
+	for i := 0; ; {
+		r := a % prime
+		s := b % prime
+		if r == 0 && s == 0 {
+			a /= prime
+			b /= prime
+			gcd *= prime
+			continue
+		}
+		if i++; i == len(primes) {
+			return gcd
+		}
+		if prime = primes[i]; prime > a || prime > b {
+			return gcd
+		}
+	}
+}
+
 // findDivisorExact finds the clock divisor and wait cycles to reduce src to
 // desired hz.
 //
@@ -168,6 +221,9 @@ func findDivisorExact(src, desired physic.Frequency, maxWaitCycles uint32) (uint
 		// higher than the source (too high) or is not a multiple.
 		return 0, 0
 	}
+	// There's two moving parameters in N space (integers).
+	// TODO(maruel): Only iterate over valid divisors to save a bit more
+	// calculations. Since it's is only doing 32 loops, this is not a big deal.
 	factor := uint32(src / desired)
 	// TODO(maruel): Only iterate over valid divisors to save a bit more
 	// calculations. Since it's is only doing 32 loops, this is not a big deal.
@@ -185,6 +241,21 @@ func findDivisorExact(src, desired physic.Frequency, maxWaitCycles uint32) (uint
 	}
 	return 0, 0
 }
+
+/*
+func a() {
+	clk := greatedCommonDivisor(factor, clockDiviMax
+	log.Printf("greatedCommonDivisor(%d, %d) =  %d", factor, clockDiviMax, clk)
+	if factor%clk != 0 {
+		return 0, 0
+	}
+	wait := factor / clk
+	if wait > maxWaitCycles {
+		return 0, 0
+	}
+	return clk, wait
+}
+*/
 
 // findDivisorOversampled tries to find the lowest allowed oversampling to make
 // desiredHz a multiple of srcHz.
@@ -211,6 +282,86 @@ func findDivisorOversampled(src, desired physic.Frequency, maxWaitCycles uint32)
 	return 0, 0, 0
 }
 
+// findDivisor finds the best clock divisor and wait cycles to reduce src to
+// desired hz.
+//
+// The clock divisor is capped to clockDiviMax.
+//
+// Returns clock divisor, wait cycles, actual frequency, error. The selected
+// frequency may be oversampled, cap is at 10x for frequencies over 10kHz.
+// Clock divisor is capped to clockDiviMax.
+//
+// This function shall be called only when there's no exact match, even with
+// oversampling. That means that we need to select a value with an error margin.
+// Oversample by 2x to reduce the relative error a bit. Multiply both srcHz and
+// desired by 100x to include additional small error detection.
+func findDivisor(src, desired physic.Frequency, maxWaitCycles int, gcd uint64) (int, int, physic.Frequency, int) {
+	return 0, 0, 0, 0
+	log.Printf("findDivisor(%d, %d, %d)", src, desired, maxWaitCycles)
+	// Lower the error bound to ~2% and keep integer based calculation.
+	desired *= 200
+	src *= 100
+
+	//lowest := (desired * uint64(maxWaitCycles) * uint64(clockDiviMax))
+	//rest := src % lowest
+
+	factor := int(src / desired)
+	bestClk := 0
+	bestWait := 0
+	x := ^uint(0)
+	minErr := int(x >> 1)
+	selectedHz := uint64(0)
+	for wait := 1; wait <= maxWaitCycles; wait++ {
+		err := factor % wait
+		if err > minErr {
+			log.Printf("wait: %d err: %d > %d", wait, err, minErr)
+			continue
+		}
+		clk := factor / wait
+		if clk == 0 {
+			log.Printf("wait: %d early exit", wait)
+			break
+		}
+		if clk <= clockDiviMax {
+			log.Printf("wait: %d, match! clk %d wait %d err := %d", wait, clk, wait, err)
+			bestClk = clk
+			bestWait = wait
+			minErr = err
+			selected = src / physic.Frequency(clk) / physic.Frequency(wait)
+			continue
+		}
+		log.Printf("wait: %d,  clk %d wait %d err := %d", wait, clk, wait, err)
+
+	}
+	return bestClk, bestWait, selected / 100, minErr / 100
+	/*
+		minErr := ^uint64(0)
+		m := 0
+		n := 0
+		selected := uint64(0)
+		for i := 1; i <= clockDiviMax; i++ {
+			maxY := maxWaitCycles
+			if maxY > i {
+				maxY = i
+			}
+			for j := 1; j <= maxY; j++ {
+				actual := (srcHz / uint64(i)) / uint64(j)
+				err := (actual - desiredHz)
+				if err < 0 {
+					err = -err
+				}
+				if minErr > err {
+					minErr = err
+					selected = actual
+					m = i
+					n = j
+				}
+			}
+		}
+		return m, n, selected / 100, minErr / 100
+	*/
+}
+
 // calcSource choose the best source to get the exact desired clock.
 //
 // It calculates the clock source, the clock divisor and the wait cycles, if
@@ -234,6 +385,9 @@ func calcSource(f physic.Frequency, maxWaitCycles uint32) (clockCtl, uint32, uin
 		return clockSrcPLLD, div, wait, f, nil
 	}
 
+	gcd19dot2 := greatedCommonDivisorHz(clk19dot2MHz, f)
+	gcd500 := greatedCommonDivisorHz(clk500MHz, f)
+
 	// Try with up to 10x oversampling. This is generally useful for lower
 	// frequencies, below 10kHz. Prefer the one with less oversampling. Only for
 	// non-aliased matches.
@@ -245,7 +399,35 @@ func calcSource(f physic.Frequency, maxWaitCycles uint32) (clockCtl, uint32, uin
 	if div500 != 0 {
 		return clockSrcPLLD, div500, wait500, f500, nil
 	}
-	return 0, 0, 0, 0, errors.New("failed to find a good clock")
+	x19, y19, actual19, rest19 := findDivisor(clk19dot2MHz, f, maxWaitCycles)
+	if rest19 == 0 {
+		return clockSrc19dot2MHz, x19, y19, actual19, nil
+	}
+	// Try 500Mhz.
+	div, wait = findDivisorExact(clk500MHz, hz, maxWaitCycles)
+	if div != 0 {
+		return clockSrcPLLD, div, wait, hz, nil
+	}
+
+	// Try with up to 10x oversampling. This is generally useful for lower
+	// frequencies, below 10kHz. Prefer the one with less oversampling. Only for
+	// non-aliased matches.
+	div19, wait19, o19 := findDivisorOversampled(clk19dot2MHz, f, maxWaitCycles)
+	div500, wait500, o500 := findDivisorOversampled(clk500MHz, f, maxWaitCycles)
+	if div19 != 0 && (div500 == 0 || o19 < o500) {
+		return clockSrc19dot2MHz, div19, wait19, hz * o19, nil
+	}
+	if div500 != 0 {
+		return clockSrcPLLD, div500, wait500, hz500, nil
+	}
+	// No exact match, search for fuzzy value with some amount of aliasing.
+	div19, wait19, actual19, rest19 := findDivisor(clk19dot2MHz, f, maxWaitCycles, gcd19dot2)
+	div500, wait500, actual500, rest500 := findDivisor(clk500MHz, f, maxWaitCycles, gcd500)
+	// Choose the one with the lowest (absolute) error.
+	if rest19 < rest500 {
+		return clockSrc19dot2MHz, div19, wait19, actual19, nil
+	}
+	return clockSrcPLLD, div500, wait500, actual500, nil
 }
 
 // set changes the clock frequency to the desired value or the closest one

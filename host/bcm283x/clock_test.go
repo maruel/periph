@@ -165,6 +165,32 @@ func TestCalcSource_exact(t *testing.T) {
 			dmaWaitcyclesMax + 1,
 			clockSrc19dot2MHz, 192, 1,
 		},
+	}
+	for i, line := range data {
+		line := line
+		t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
+			t.Parallel()
+			clk, clkDiv, waitCycles, hz, _ := calcSource(line.desiredHz, line.maxWaitCycles)
+			if clk != line.clk || line.clkDiv != clkDiv || line.waitCycles != waitCycles || line.desiredHz != hz {
+				t.Fatalf("calcSource(%dHz, %d) = %s / %d / %d = %dHz  expected %s / %d / %d = %dHz",
+					line.desiredHz, line.maxWaitCycles,
+					clk, clkDiv, waitCycles, hz,
+					line.clk, line.clkDiv, line.waitCycles, line.desiredHz)
+			}
+		})
+	}
+}
+
+func TestCalcSource_fuzzy(t *testing.T) {
+	t.Parallel()
+	// clockDiviMax is 4095, an odd number.
+	data := []struct {
+		desiredHz          uint64
+		maxWaitCycles      int
+		clk                clockCtl
+		clkDiv, waitCycles int
+		hz                 uint64
+	}{
 		{
 			120 * physic.KiloHertz,
 			dmaWaitcyclesMax + 1,
