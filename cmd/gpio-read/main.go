@@ -6,12 +6,15 @@
 package main
 
 import (
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
+	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
@@ -26,10 +29,63 @@ func printLevel(l gpio.Level) error {
 	return err
 }
 
+func doStream(p gpio.PinIn, r time.Duration, stop <-chan os.Signal) error {
+	ps, ok := p.(gpio.PinStreamReader)
+	if !ok {
+		return fmt.Errorf("%s doesn't support streaming", p)
+	}
+	b := gpio.BitStreamLSB{Res: r, Bits: make(gpio.BitsLSB, 32)}
+	for {
+		select {
+		case <-stop:
+			return nil
+		default:
+		}
+		if err := ps.ReadStream(gpio.PullNoChange, &b); err != nil {
+			return err
+		}
+		/*
+			for i := range b.Bits {
+				for j := 0; j < 8; j++ {
+					if b.Bits[i]&1<<uint(j) != 0 {
+						if _, err := os.Stdout.Write([]byte{'1'}); err != nil {
+							// It's just stdout that closed.
+							return nil
+						}
+					} else {
+						if _, err := os.Stdout.Write([]byte{'0'}); err != nil {
+							// It's just stdout that closed.
+							return nil
+						}
+					}
+				}
+			}
+		*/
+		fmt.Printf("%s\n", hex.EncodeToString(b.Bits))
+	}
+}
+
+func doEdges(p gpio.PinIn, stop <-chan os.Signal) error {
+	for {
+		c := make(chan struct{})
+		go func() {
+			p.WaitForEdge(-1)
+			c <- struct{}{}
+		}()
+		select {
+		case <-c:
+			printLevel(p.Read())
+		case <-stop:
+			return nil
+		}
+	}
+}
+
 func mainImpl() error {
 	pullUp := flag.Bool("u", false, "pull up")
 	pullDown := flag.Bool("d", false, "pull down")
 	edges := flag.Bool("e", false, "wait for edges")
+	stream := flag.String("s", "", "streams 0 and 1 while reading at the specified frequency")
 	verbose := flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 	if !*verbose {
@@ -37,7 +93,9 @@ func mainImpl() error {
 	}
 	log.SetFlags(log.Lmicroseconds)
 
-	//pull := gpio.PullNoChange
+	if *edges && *stream != "" {
+		return errors.New("can't use both -e and -s")
+	}
 	pull := gpio.Float
 	if *pullUp {
 		if *pullDown {
@@ -60,6 +118,19 @@ func mainImpl() error {
 	if p == nil {
 		return errors.New("specify a valid GPIO pin number")
 	}
+
+	// Handle Ctrl-C gracefully.
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
+	if *stream != "" {
+		d, err := time.ParseDuration(*stream)
+		if err != nil {
+			return err
+		}
+		return doStream(p, d, stop)
+	}
+
 	edge := gpio.NoEdge
 	if *edges {
 		edge = gpio.BothEdges
@@ -68,13 +139,7 @@ func mainImpl() error {
 		return err
 	}
 	if *edges {
-		for {
-			p.WaitForEdge(-1)
-			if err := printLevel(p.Read()); err != nil {
-				// Do not return an error on pipe fail, just exit.
-				return nil
-			}
-		}
+		return doEdges(p, stop)
 	}
 	return printLevel(p.Read())
 }

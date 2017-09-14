@@ -100,6 +100,9 @@ func TestPin_edge(t *testing.T) {
 
 func TestPin_fail(t *testing.T) {
 	p := &Pin{N: "GPIO1", Num: 1, Fn: "I2C1_SDA"}
+	if err := p.PWM(gpio.DutyHalf, time.Millisecond); err == nil {
+		t.Fatal()
+	}
 	if err := p.In(gpio.Float, gpio.BothEdges); err == nil {
 		t.Fatal()
 	}
