@@ -561,3 +561,6 @@ var _ gpio.PinIO = &PinPL{}
 var _ gpio.PinIn = &PinPL{}
 var _ gpio.PinOut = &PinPL{}
 var _ pin.PinFunc = &PinPL{}
+
+//var _ gpiostream.PinIn = &PinPL{}
+//var _ gpiostream.PinOut = &PinPL{}

@@ -63,7 +63,10 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	} else {
 		return errors.New("implement and test for this host")
 	}
-	return ensureConnectivity(pwm, other)
+	if err := ensureConnectivity(pwm, other); err != nil {
+		return err
+	}
+	return s.testPWM(pwm, other)
 }
 
 // Returns a channel that will return one bool, true if a edge was detected,
@@ -81,6 +84,21 @@ func (s *SmokeTest) waitForEdge(p gpio.PinIO) <-chan bool {
 		c <- b
 	}()
 	return c
+}
+
+func (s *SmokeTest) testPWM(pwm, other *loggingPin) error {
+	fmt.Printf("- Testing PWM\n")
+	if err := other.In(gpio.PullDown, gpio.BothEdges); err != nil {
+		return err
+	}
+	time.Sleep(time.Microsecond)
+	if err := pwm.PWM(32000, time.Millisecond); err != nil {
+		return err
+	}
+	if err := other.PWM(32000, time.Millisecond); err == nil {
+		return fmt.Errorf("%s shouldn't be supported in PWM mode", other)
+	}
+	return nil
 }
 
 //
@@ -115,6 +133,11 @@ func (p *loggingPin) In(pull gpio.Pull, edge gpio.Edge) error {
 func (p *loggingPin) Out(l gpio.Level) error {
 	fmt.Printf("  %s %s.Out(%s)\n", since(p.start), p, l)
 	return p.Pin.Out(l)
+}
+
+func (p *loggingPin) PWM(duty gpio.Duty, period time.Duration) error {
+	fmt.Printf("  %s %s.PWM(%s, %s)\n", since(p.start), p, duty, period)
+	return p.Pin.PWM(duty, period)
 }
 
 // ensureConnectivity makes sure they are connected together.

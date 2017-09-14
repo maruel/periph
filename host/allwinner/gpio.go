@@ -19,6 +19,7 @@ import (
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/conn/gpio/gpiostream"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
 	"periph.io/x/periph/host/pmem"
@@ -437,9 +438,78 @@ func (p *Pin) FastOut(l gpio.Level) {
 	}
 }
 
-// PWM implements gpio.PinOut.
-func (p *Pin) PWM(gpio.Duty, physic.Frequency) error {
-	return p.wrap(errors.New("not available on this CPU architecture"))
+// PWM sets the PWM output on supported pins.
+//
+// To use as a general purpose clock, set duty to DutyHalf.
+//
+// Using 0 as frequency will use the default value of 10kHz.
+//
+// The supported pin(s) vary across the CPU architecture. See the following
+// example to retrieve the pin for the first PWM:
+func (p *Pin) PWM(duty gpio.Duty, f physic.Frequency) error {
+	if !p.available {
+		return p.wrap(errors.New("not available on this CPU architecture"))
+	}
+	if duty == 0 {
+		return p.Out(gpio.Low)
+	} else if duty == gpio.DutyMax {
+		return p.Out(gpio.High)
+	}
+	if p.altFunc[0] != "PWM" {
+		return p.wrap(errors.New("pwm is not supported on this pin"))
+	}
+	// Intentionally check later, so a more informative error is returned on
+	// unsupported pins.
+	if pwmMemory == nil {
+		return p.wrap(errors.New("subsystem not initialized"))
+	}
+	// TODO(maruel): Use a hard coded 1kHz frequency for now.
+	pwmMemory.ctl &^= pwm0Mask
+	pwmMemory.ctl |= pwm0Prescale120
+	p.setFunction(alt1)
+	// TODO(maruel): Improve resolution; right now it's only 200 gradation.
+	pwmMemory.period = toPeriod(200, uint16((duty*200)/gpio.DutyMax))
+	pwmMemory.ctl |= pwm0Enable | pwm0SCLK
+	return nil
+}
+
+func (p *Pin) StreamOut(s gpiostream.Stream) error {
+	if p.Name() != "PE2" {
+		return p.wrap(errors.New("must use PE2"))
+	}
+	// TODO(maruel): Optimize.
+	if err := p.Out(gpio.Low); err != nil {
+		return err
+	}
+	//if err := Stream(p, s, nil); err != nil {
+	//	return p.wrap(err)
+	//}
+	// Set as SPI2_MOSI.
+	p.setFunction(alt3)
+	b := s.(*gpiostream.BitStream)
+	if err := spi2Write(b.Bits); err != nil {
+		return p.wrap(err)
+	}
+	return nil
+}
+
+func (p *Pin) StreamIn(pull gpio.Pull, b gpiostream.BitStream) error {
+	if p.Name() != "PE3" {
+		return p.wrap(errors.New("must use PE3"))
+	}
+	if pull != gpio.PullNoChange {
+		// TODO(maruel): Optimize.
+		if err := p.In(pull, gpio.NoEdge); err != nil {
+			return err
+		}
+	}
+	// Set as SPI2_MISO.
+	p.setFunction(alt3)
+	if err := spi2Read(b.Bits); err != nil {
+		return p.wrap(err)
+	}
+	p.setFunction(in)
+	return nil
 }
 
 //
@@ -1063,3 +1133,5 @@ var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ pin.PinFunc = &Pin{}
+var _ gpiostream.PinIn = &Pin{}
+var _ gpiostream.PinOut = &Pin{}
