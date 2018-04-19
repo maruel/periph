@@ -82,6 +82,9 @@ const (
 	periphBus  = 0x7E000000
 	// maxLite is the maximum transfer allowed by a lite channel.
 	maxLite = 65535
+	// dmaChosenChannel is the DMA channel to use. That's the one used by pi-blaster.
+	// It is a lite channel though so it is limited in performance.
+	dmaChosenChannel = 14
 )
 
 // Pages 47-50
@@ -619,50 +622,11 @@ func (d *dmaMap) GoString() string {
 	return strings.Join(out, "\n")
 }
 
-// pickChannel searches for a free DMA channel.
-func pickChannel(blacklist ...int) (int, *dmaChannel) {
-	// Try the lite ones first.
-	if drvDMA.dmaMemory != nil {
-		// TODO(maruel): Trying to use channel #15 always fails.
-		/*
-			if drvDMA.dmaChannel15 != nil {
-				if drvDMA.dmaChannel15.isAvailable() {
-					drvDMA.dmaChannel15.reset()
-					return 15, drvDMA.dmaChannel15
-				}
-			}
-		*/
-		// TODO(maruel): May as well use a lookup table.
-		for i := len(drvDMA.dmaMemory.channels) - 1; i >= 0; i-- {
-			for _, exclude := range blacklist {
-				if i == exclude {
-					goto skip
-				}
-			}
-			if drvDMA.dmaMemory.channels[i].isAvailable() {
-				drvDMA.dmaMemory.channels[i].reset()
-				return i, &drvDMA.dmaMemory.channels[i]
-			}
-		skip:
-		}
-	}
-	// Uncomment to understand the state of the DMA channels.
-	//log.Printf("%#v", drvDMA.dmaMemory)
-	return -1, nil
-}
-
-// runIO picks a DMA channel, initialize it and runs a transfer.
+// runIO runs a transfer using DMA channel dmaChosenChannel.
 //
 // It tries to release the channel as soon as it can.
-func runIO(pCB pmem.Mem, liteOk bool) error {
-	var blacklist []int
-	if !liteOk {
-		blacklist = []int{7, 8, 9, 10, 11, 12, 13, 14, 15}
-	}
-	_, ch := pickChannel(blacklist...)
-	if ch == nil {
-		return errors.New("bcm283x-dma: no channel available")
-	}
+func runIO(pCB pmem.Mem) error {
+	ch := &dmaMemory.channels[dmaChosenChannel]
 	defer ch.reset()
 	ch.startIO(uint32(pCB.PhysAddr()))
 	return ch.wait()
@@ -728,7 +692,7 @@ func dmaWriteStreamPCM(p *Pin, w gpiostream.Stream) error {
 	defer drvDMA.pcmMemory.reset()
 	// Start transfer
 	drvDMA.pcmMemory.set()
-	err = runIO(pCB, l <= maxLite)
+	err = runIO(pCB)
 	// We have to wait PCM to be finished even after DMA finished.
 	for drvDMA.pcmMemory.cs&pcmTXErr == 0 {
 		Nanospin(10 * time.Nanosecond)
@@ -756,11 +720,7 @@ func dmaWritePWMFIFO() (*dmaChannel, *videocore.Mem, error) {
 	}
 	cb[0].nextCB = physBuf // Loop back to self.
 
-	_, ch := pickChannel()
-	if ch == nil {
-		_ = buf.Close()
-		return nil, nil, errors.New("bcm283x-dma: no channel available")
-	}
+	ch := &dmaMemory.channels[dmaChosenChannel]
 	ch.startIO(physBuf)
 
 	return ch, buf, nil
@@ -870,7 +830,7 @@ func dmaReadStream(p *Pin, b *gpiostream.BitStream) error {
 	if err := cb[0].initBlock(reg, uint32(buf.PhysAddr()), uint32(l), true, false, false, true, dmaPWM); err != nil {
 		return err
 	}
-	err = runIO(pCB, l <= maxLite)
+	err = runIO(pCB)
 	uint32ToBitLSBF(b.Bits, buf.Bytes(), uint8(p.number&31), skip*uint32Size)
 	return err
 }
@@ -1122,7 +1082,7 @@ func smokeTest() error {
 				return err
 			}
 		}
-		return runIO(pCB, size-2*holeSize <= maxLite)
+		return runIO(pCB)
 	}
 
 	return pmem.TestCopy(size, holeSize, alloc, copyMem)
