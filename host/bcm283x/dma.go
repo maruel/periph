@@ -1198,6 +1198,7 @@ func (d *driverDMA) Init() (bool, error) {
 	d.pwmBaseFreq = 25 * physic.MegaHertz
 	d.pwmDMAFreq = 200 * physic.KiloHertz
 	// baseAddr is initialized by prerequisite driver bcm283x-gpio.
+	// /sys/devices/platform/soc/3f007000.dma
 	if err := pmem.MapAsPOD(uint64(drvGPIO.baseAddr+0x7000), &d.dmaMemory); err != nil {
 		if os.IsPermission(err) {
 			return true, fmt.Errorf("need more access, try as root: %v", err)

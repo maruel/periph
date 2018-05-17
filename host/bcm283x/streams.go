@@ -8,7 +8,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"time"
 
+	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpiostream"
 )
 
@@ -76,6 +78,29 @@ func raster32Bits(s gpiostream.Stream, skip int, clear, set []uint32, mask uint3
 	return nil
 }
 
+func raster32Edges(e *gpiostream.EdgeStream, resolution time.Duration, clear, set []uint32, mask uint32) error {
+	if resolution < e.Res {
+		return errors.New("bcm283x: resolution is too coarse")
+	}
+	if e.Duration() > resolution*time.Duration(len(clear)) {
+		return errors.New("bcm283x: buffer is too short")
+	}
+	l := gpio.High
+	//edges := e.Edges
+	for i := range clear {
+		if l {
+			set[i] |= mask
+		} else {
+			clear[i] |= mask
+		}
+	}
+	return nil
+}
+
+func raster32Program(p *gpiostream.Program, resolution time.Duration, clear, set []uint32, mask uint32) error {
+	return errors.New("bcm283x: implement me")
+}
+
 // raster32 rasters the stream into a uint32 stream with the specified masks to
 // put in the correctly slice when the bit is set and when it is clear.
 //
@@ -98,9 +123,9 @@ func raster32(s gpiostream.Stream, skip int, clear, set []uint32, mask uint32) e
 		// TODO
 		return raster32Bits(x, skip, clear, set, mask)
 	case *gpiostream.EdgeStream:
-		return errors.New("bcm283x: EdgeStream is not supported yet")
+		return raster32Edges(x, resolution, clear, set, mask)
 	case *gpiostream.Program:
-		return errors.New("bcm283x: Program is not supported yet")
+		return raster32(x, resolution, clear, set, mask)
 	default:
 		return errors.New("bcm283x: unknown stream type")
 	}
@@ -130,5 +155,43 @@ func copyStreamToDMABuf(w gpiostream.Stream, dst []uint32) error {
 		return errors.New("TODO(simokawa): handle EdgeStream")
 	default:
 		return errors.New("unsupported Stream type")
+	}
+}
+
+//
+
+func rasterEdges(e *gpiostream.EdgeStream, out *gpiostream.BitStreamLSB) error {
+	return errors.New("bcm283x: implement me")
+}
+
+func rasterBits(b *gpiostream.BitStreamLSB, out *gpiostream.BitStreamLSB) error {
+	if out.Res != b.Res {
+		// TODO(maruel): Implement nearest neighborhood filter.
+		return errors.New("bcm283x: TODO: implement resolution matching")
+	}
+	if b.Duration() > out.Res*time.Duration(len(out.Bits)*8) {
+		return errors.New("bcm283x: buffer is too short")
+	}
+	copy(out.Bits, b.Bits)
+	return nil
+}
+
+func rasterProgram(p *gpiostream.Program, out *gpiostream.BitStreamLSB) error {
+	return errors.New("bcm283x: implement me")
+}
+
+// raster rasters the stream into a gpiostream.BitsLSB stream.
+//
+// `s` must be one of the types in this package.
+func raster(s gpiostream.Stream, out *gpiostream.BitStreamLSB) error {
+	switch x := s.(type) {
+	case *gpiostream.BitStreamLSB:
+		return rasterBits(x, out)
+	case *gpiostream.EdgeStream:
+		return rasterEdges(x, out)
+	case *gpiostream.Program:
+		return raster(x, out)
+	default:
+		return errors.New("bcm283x: unknown stream type")
 	}
 }

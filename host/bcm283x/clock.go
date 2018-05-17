@@ -328,3 +328,13 @@ func (c *clockMap) GoString() string {
 		"{\n  gp0: %s,\n  gp1: %s,\n  gp2: %s,\n  pcm: %sw,\n  pwm: %s,\n}",
 		&c.gp0, &clock{clockCtl(c.gp1ctl), clockDiv(c.gp1div)}, &c.gp2, &c.pcm, &c.pwm)
 }
+
+// reset stop the clocks.
+func (c *clockMap) reset() {
+	for i := range c.gp {
+		c.gp[i].set(0)
+	}
+	//c.pcm.set(0)
+	// Set the PWM clock to 1Mhz.
+	c.pwm.set(1000000)
+}

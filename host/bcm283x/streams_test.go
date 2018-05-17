@@ -30,3 +30,13 @@ func TestRaster32Bits(t *testing.T) {
 		t.Errorf("unexpected d32Clear %v", d32Clear)
 	}
 }
+
+func TestRaster32Edges(t *testing.T) {
+	e := gpiostream.EdgeStream{Res: time.Second, Edges: []time.Duration{time.Second, time.Millisecond}}
+	// TODO(maruel): Test all code path, including filtering and all errors.
+	var d32Set []uint32
+	var d32Clear []uint32
+	if err := raster32Edges(&e, 8*time.Millisecond, d32Set, d32Clear, 2); err == nil {
+		t.FailNow()
+	}
+}
