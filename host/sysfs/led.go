@@ -6,7 +6,6 @@ package sysfs
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -19,7 +18,6 @@ import (
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
-	"periph.io/x/periph/host/fs"
 )
 
 // LEDs is all the leds discovered on this host via sysfs.
@@ -51,12 +49,12 @@ type LED struct {
 	root   string
 
 	mu          sync.Mutex
-	fBrightness *fs.File // handle to /sys/class/gpio/gpio*/direction; never closed
+	fBrightness fileIO // handle to /sys/class/gpio/gpio*/direction; never closed
 }
 
 // String implements conn.Resource.
 func (l *LED) String() string {
-	return fmt.Sprintf("%s(%d)", l.name, l.number)
+	return l.name + "(" + strconv.Itoa(l.number) + ")"
 }
 
 // Halt implements conn.Resource.
@@ -112,12 +110,11 @@ func (l *LED) In(pull gpio.Pull, edge gpio.Edge) error {
 
 // Read implements gpio.PinIn.
 func (l *LED) Read() gpio.Level {
-	err := l.open()
-	if err != nil {
-		return gpio.Low
-	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if err := l.openLocked(); err != nil {
+		return gpio.Low
+	}
 	if _, err := l.fBrightness.Seek(0, 0); err != nil {
 		return gpio.Low
 	}
@@ -148,53 +145,55 @@ func (l *LED) DefaultPull() gpio.Pull {
 
 // Out implements gpio.PinOut.
 func (l *LED) Out(level gpio.Level) error {
-	err := l.open()
-	if err != nil {
-		return err
+	var b []byte
+	if level {
+		b = b255
+	} else {
+		b = b0
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if _, err = l.fBrightness.Seek(0, 0); err != nil {
+	if err := l.openLocked(); err != nil {
 		return err
 	}
-	if level {
-		_, err = l.fBrightness.Write([]byte("255"))
-	} else {
-		_, err = l.fBrightness.Write([]byte("0"))
-	}
-	return err
+	return seekWrite(l.fBrightness, b)
 }
 
 // PWM implements gpio.PinOut.
 //
 // This sets the intensity level, if supported. The frequency is ignored.
 func (l *LED) PWM(d gpio.Duty, f physic.Frequency) error {
-	err := l.open()
-	if err != nil {
-		return err
-	}
+	v := (d + gpio.DutyMax/512) / (gpio.DutyMax / 256)
+	b := []byte(strconv.Itoa(int(v)))
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if _, err = l.fBrightness.Seek(0, 0); err != nil {
+	if err := l.openLocked(); err != nil {
 		return err
 	}
-	v := (d + gpio.DutyMax/512) / (gpio.DutyMax / 256)
-	_, err = l.fBrightness.Write([]byte(strconv.Itoa(int(v))))
-	return err
+	return seekWrite(l.fBrightness, b)
 }
 
 //
 
+var (
+	b0   = []byte("0")
+	b255 = []byte("255")
+)
+
 func (l *LED) open() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	return l.openLocked()
+}
+
+func (l *LED) openLocked() error {
 	// trigger, max_brightness.
 	var err error
 	if l.fBrightness == nil {
 		p := l.root + "brightness"
-		if l.fBrightness, err = fs.Open(p, os.O_RDWR); err != nil {
+		if l.fBrightness, err = fileIOOpen(p, os.O_RDWR); err != nil {
 			// Retry with read-only. This is the default setting.
-			l.fBrightness, err = fs.Open(p, os.O_RDONLY)
+			l.fBrightness, err = fileIOOpen(p, os.O_RDONLY)
 		}
 	}
 	return err

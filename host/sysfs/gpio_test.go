@@ -6,6 +6,7 @@ package sysfs
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"periph.io/x/periph/conn/gpio"
@@ -224,12 +225,12 @@ func (f *fakeGPIOFile) Fd() uintptr {
 }
 
 func (f *fakeGPIOFile) Ioctl(op uint, data uintptr) error {
-	return errors.New("injected")
+	return errors.New("injected: ioctl not implemented")
 }
 
 func (f *fakeGPIOFile) Read(b []byte) (int, error) {
 	if f.data == nil {
-		return 0, errors.New("injected")
+		return 0, errors.New("injected: no data to read")
 	}
 	copy(b, f.data)
 	return len(f.data), nil
@@ -237,7 +238,10 @@ func (f *fakeGPIOFile) Read(b []byte) (int, error) {
 
 func (f *fakeGPIOFile) Write(b []byte) (int, error) {
 	if f.data == nil {
-		return 0, errors.New("injected")
+		return 0, errors.New("injected: no data to write")
+	}
+	if len(f.data) < len(b) {
+		return 0, fmt.Errorf("injected: incorrect data length to write; %d != %d", len(f.data), len(b))
 	}
 	copy(f.data, b)
 	return len(f.data), nil
