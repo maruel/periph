@@ -140,6 +140,17 @@ func Unregister(name string) error {
 	return errors.New("gpioreg: can't unregister unknown pin name " + strconv.Quote(name))
 }
 
+// Reset removes all registered entries.
+//
+// This is meant to be used in unit tests. This is because aliases to non
+// existing pins cannot be removed otherwise.
+func Reset() {
+	mu.Lock()
+	defer mu.Unlock()
+	byName = map[string]gpio.PinIO{}
+	byAlias = map[string]string{}
+}
+
 //
 
 var (

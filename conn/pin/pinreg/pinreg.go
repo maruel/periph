@@ -7,11 +7,11 @@ package pinreg
 import (
 	"errors"
 	"strconv"
-	"sync"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/pin"
+	"periph.io/x/periph/conn/pin/pinreg/internal"
 )
 
 // All contains all the on-board headers on a micro computer.
@@ -20,10 +20,10 @@ import (
 // slice of slice of pin.Pin. For a 2x20 header, it's going to be a slice of
 // [20][2]pin.Pin.
 func All() map[string][][]pin.Pin {
-	mu.Lock()
-	defer mu.Unlock()
-	out := make(map[string][][]pin.Pin, len(allHeaders))
-	for k, v := range allHeaders {
+	internal.Mu.Lock()
+	defer internal.Mu.Unlock()
+	out := make(map[string][][]pin.Pin, len(internal.AllHeaders))
+	for k, v := range internal.AllHeaders {
 		outV := make([][]pin.Pin, len(v))
 		for i, w := range v {
 			outW := make([]pin.Pin, len(w))
@@ -41,9 +41,9 @@ func All() map[string][][]pin.Pin {
 //
 // Returns "", 0 if not connected.
 func Position(p pin.Pin) (string, int) {
-	mu.Lock()
-	defer mu.Unlock()
-	pos := byPin[realPin(p).Name()]
+	internal.Mu.Lock()
+	defer internal.Mu.Unlock()
+	pos := internal.ByPin[realPin(p).Name()]
 	return pos.name, pos.number
 }
 
@@ -57,9 +57,9 @@ func IsConnected(p pin.Pin) bool {
 //
 // It automatically registers all gpio pins to gpioreg.
 func Register(name string, allPins [][]pin.Pin) error {
-	mu.Lock()
-	defer mu.Unlock()
-	if _, ok := allHeaders[name]; ok {
+	internal.Mu.Lock()
+	defer internal.Mu.Unlock()
+	if _, ok := internal.AllHeaders[name]; ok {
 		return errors.New("pinreg: header " + strconv.Quote(name) + " was already registered")
 	}
 	for i, line := range allPins {
@@ -69,11 +69,11 @@ func Register(name string, allPins [][]pin.Pin) error {
 			}
 		}
 	}
-	allHeaders[name] = allPins
+	internal.AllHeaders[name] = allPins
 	number := 1
 	for _, line := range allPins {
 		for _, p := range line {
-			byPin[realPin(p).Name()] = position{name, number}
+			internal.ByPin[realPin(p).Name()] = position{name, number}
 			number++
 		}
 	}
@@ -98,7 +98,6 @@ func Register(name string, allPins [][]pin.Pin) error {
 // Unregister removes a previously registered header.
 //
 // This can happen when an USB device, which exposed an header, is unplugged.
-// This is also useful for unit testing.
 func Unregister(name string) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -107,34 +106,21 @@ func Unregister(name string) error {
 
 //
 
-type position struct {
-	name   string // Header name
-	number int    // Pin number
-}
-
-var (
-	mu         sync.Mutex
-	allHeaders = map[string][][]pin.Pin{} // every known headers as per internal lookup table
-	byPin      = map[string]position{}    // GPIO pin name to position
-)
-
 func unregister(name string) error {
-	if hdr, ok := allHeaders[name]; ok {
-		var err error
-		delete(allHeaders, name)
+	if hdr, ok := internal.AllHeaders[name]; ok {
+		delete(internal.AllHeaders, name)
 		count := 0
 		for _, row := range hdr {
 			for _, p := range row {
 				count++
 				if _, ok := p.(gpio.PinIO); ok {
-					if err1 := gpioreg.Unregister(name + "_" + strconv.Itoa(count)); err1 != nil && err == nil {
-						// Continue unregistering as much as possible.
-						err = errors.New("pinreg: " + err1.Error())
+					if err := gpioreg.Unregister(name + "_" + strconv.Itoa(count)); err != nil {
+						return errors.New("pinreg: " + err.Error())
 					}
 				}
 			}
 		}
-		return err
+		return nil
 	}
 	return errors.New("pinreg: can't unregister unknown header name " + strconv.Quote(name))
 }

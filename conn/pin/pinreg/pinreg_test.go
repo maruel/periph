@@ -129,6 +129,41 @@ func TestUnregister_missing_alias(t *testing.T) {
 	}
 }
 
+func TestUnregister(t *testing.T) {
+	defer reset(t)
+	gpio2 := &gpiotest.Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
+	if err := Register("P1", [][]pin.Pin{{gpio2}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := Unregister("P1"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUnregister_unknown(t *testing.T) {
+	defer reset(t)
+	if Unregister("P1") == nil {
+		t.Fatal("can't unregister unregistered header")
+	}
+}
+
+func TestUnregister_missing_alias(t *testing.T) {
+	defer reset(t)
+	gpio2 := &gpiotest.Pin{N: "GPIO2", Num: 2, Fn: "I2C1_SDA"}
+	if err := gpioreg.Register(gpio2); err != nil {
+		t.Fatal(err)
+	}
+	if err := Register("P1", [][]pin.Pin{{gpio2}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := gpioreg.Unregister("P1_1"); err != nil {
+		t.Fatal(err)
+	}
+	if Unregister("P1") == nil {
+		t.Fatal("Should fail unregistering aliases")
+	}
+}
+
 //
 
 func reset(t *testing.T) {
