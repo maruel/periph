@@ -71,39 +71,39 @@ func (s *SPI) String() string {
 }
 
 // LimitSpeed implements spi.ConnCloser.
-func (s *SPI) LimitSpeed(f physic.Frequency) error {
+func (s *SPI) LimitSpeed(f physic.Frequency) (physic.Frequency, error) {
 	if f > physic.GigaHertz {
-		return fmt.Errorf("sysfs-spi: invalid speed %s; maximum supported clock is 1GHz", f)
+		return 0, fmt.Errorf("sysfs-spi: invalid speed %s; maximum supported clock is 1GHz", f)
 	}
 	if f < 100*physic.Hertz {
-		return fmt.Errorf("sysfs-spi: invalid speed %s; minimum supported clock is 100Hz; did you forget to multiply by physic.MegaHertz?", f)
+		return 0, fmt.Errorf("sysfs-spi: invalid speed %s; minimum supported clock is 100Hz; did you forget to multiply by physic.MegaHertz?", f)
 	}
 	s.conn.mu.Lock()
 	defer s.conn.mu.Unlock()
 	s.conn.freqPort = f
-	return nil
+	return f, nil
 }
 
 // Connect implements spi.Port.
 //
 // It must be called before any I/O.
-func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, physic.Frequency, error) {
 	if f > physic.GigaHertz {
-		return nil, fmt.Errorf("sysfs-spi: invalid speed %s; maximum supported clock is 1GHz", f)
+		return nil, 0, fmt.Errorf("sysfs-spi: invalid speed %s; maximum supported clock is 1GHz", f)
 	}
 	if f < 100*physic.Hertz {
-		return nil, fmt.Errorf("sysfs-spi: invalid speed %s; minimum supported clock is 100Hz; did you forget to multiply by physic.MegaHertz?", f)
+		return nil, 0, fmt.Errorf("sysfs-spi: invalid speed %s; minimum supported clock is 100Hz; did you forget to multiply by physic.MegaHertz?", f)
 	}
 	if mode&^(spi.Mode3|spi.HalfDuplex|spi.NoCS|spi.LSBFirst) != 0 {
-		return nil, fmt.Errorf("sysfs-spi: invalid mode %v", mode)
+		return nil, 0, fmt.Errorf("sysfs-spi: invalid mode %v", mode)
 	}
 	if bits < 1 || bits >= 256 {
-		return nil, fmt.Errorf("sysfs-spi: invalid bits %d", bits)
+		return nil, 0, fmt.Errorf("sysfs-spi: invalid bits %d", bits)
 	}
 	s.conn.mu.Lock()
 	defer s.conn.mu.Unlock()
 	if s.conn.connected {
-		return nil, errors.New("sysfs-spi: Connect() can only be called exactly once")
+		return nil, 0, errors.New("sysfs-spi: Connect() can only be called exactly once")
 	}
 	s.conn.connected = true
 	s.conn.freqConn = f
@@ -133,9 +133,9 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 	// Only the first 8 bits are used. This only works because the system is
 	// running in little endian.
 	if err := s.conn.setFlag(spiIOCMode, uint64(m)); err != nil {
-		return nil, fmt.Errorf("sysfs-spi: setting mode %v failed: %v", mode, err)
+		return nil, 0, fmt.Errorf("sysfs-spi: setting mode %v failed: %v", mode, err)
 	}
-	return &s.conn, nil
+	return &s.conn, f, nil
 }
 
 // MaxTxSize implements conn.Limits

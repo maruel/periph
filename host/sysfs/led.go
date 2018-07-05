@@ -168,19 +168,19 @@ func (l *LED) Out(level gpio.Level) error {
 // PWM implements gpio.PinOut.
 //
 // This sets the intensity level, if supported. The frequency is ignored.
-func (l *LED) PWM(d gpio.Duty, f physic.Frequency) error {
+func (l *LED) PWM(d gpio.Duty, f physic.Frequency) (physic.Frequency, error) {
 	err := l.open()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if _, err = l.fBrightness.Seek(0, 0); err != nil {
-		return err
+		return 0, err
 	}
 	v := (d + gpio.DutyMax/512) / (gpio.DutyMax / 256)
 	_, err = l.fBrightness.Write([]byte(strconv.Itoa(int(v))))
-	return err
+	return f, err
 }
 
 //

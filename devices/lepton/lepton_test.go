@@ -392,7 +392,7 @@ func (s *spiStream) String() string {
 	return "spi"
 }
 
-func (s *spiStream) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (s *spiStream) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, physic.Frequency, error) {
 	if f != 20*physic.MegaHertz {
 		s.t.Fatal(f)
 	}
@@ -402,7 +402,7 @@ func (s *spiStream) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Co
 	if bits != 8 {
 		s.t.Fatal(bits)
 	}
-	return s, s.err
+	return s, f, s.err
 }
 
 func (s *spiStream) Tx(w, r []byte) error {

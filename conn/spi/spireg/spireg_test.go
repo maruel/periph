@@ -170,12 +170,12 @@ func (f *fakePort) Duplex() conn.Duplex {
 	return conn.DuplexUnknown
 }
 
-func (f *fakePort) LimitSpeed(freq physic.Frequency) error {
-	return errors.New("not implemented")
+func (f *fakePort) LimitSpeed(freq physic.Frequency) (physic.Frequency, error) {
+	return 0, errors.New("not implemented")
 }
 
-func (f *fakePort) Connect(freq physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
-	return f, errors.New("not implemented")
+func (f *fakePort) Connect(freq physic.Frequency, mode spi.Mode, bits int) (spi.Conn, physic.Frequency, error) {
+	return f, 0, errors.New("not implemented")
 }
 
 func (f *fakePort) TxPackets(p []spi.Packet) error {

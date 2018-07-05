@@ -38,19 +38,19 @@ func (r *RecordRaw) Close() error {
 }
 
 // LimitSpeed is a no-op.
-func (r *RecordRaw) LimitSpeed(f physic.Frequency) error {
-	return nil
+func (r *RecordRaw) LimitSpeed(f physic.Frequency) (physic.Frequency, error) {
+	return f, nil
 }
 
 // Connect is a no-op.
-func (r *RecordRaw) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (r *RecordRaw) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, physic.Frequency, error) {
 	r.Lock()
 	defer r.Unlock()
 	if r.Initialized {
-		return nil, conntest.Errorf("spitest: Connect cannot be called twice")
+		return nil, 0, conntest.Errorf("spitest: Connect cannot be called twice")
 	}
 	r.Initialized = true
-	return &recordRawConn{r}, nil
+	return &recordRawConn{r}, f, nil
 }
 
 type recordRawConn struct {
@@ -98,29 +98,29 @@ func (r *Record) Close() error {
 }
 
 // LimitSpeed implements spi.PortCloser.
-func (r *Record) LimitSpeed(f physic.Frequency) error {
+func (r *Record) LimitSpeed(f physic.Frequency) (physic.Frequency, error) {
 	if r.Port != nil {
 		return r.Port.LimitSpeed(f)
 	}
-	return nil
+	return f, nil
 }
 
 // Connect implements spi.PortCloser.
-func (r *Record) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (r *Record) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, physic.Frequency, error) {
 	r.Lock()
 	defer r.Unlock()
 	if r.Initialized {
-		return nil, conntest.Errorf("spitest: Connect cannot be called twice")
+		return nil, 0, conntest.Errorf("spitest: Connect cannot be called twice")
 	}
 	r.Initialized = true
 	if r.Port != nil {
-		c, err := r.Port.Connect(f, mode, bits)
+		c, rf, err := r.Port.Connect(f, mode, bits)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
-		return &recordConn{r, c}, nil
+		return &recordConn{r, c}, rf, nil
 	}
-	return &recordConn{r, nil}, nil
+	return &recordConn{r, nil}, f, nil
 }
 
 // CLK implements spi.Pins.
@@ -250,19 +250,19 @@ func (p *Playback) Close() error {
 }
 
 // LimitSpeed implements spi.PortCloser.
-func (p *Playback) LimitSpeed(f physic.Frequency) error {
-	return nil
+func (p *Playback) LimitSpeed(f physic.Frequency) (physic.Frequency, error) {
+	return f, nil
 }
 
 // Connect implements spi.PortCloser.
-func (p *Playback) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (p *Playback) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, physic.Frequency, error) {
 	p.Lock()
 	defer p.Unlock()
 	if p.Initialized {
-		return nil, conntest.Errorf("spitest: Connect cannot be called twice")
+		return nil, 0, conntest.Errorf("spitest: Connect cannot be called twice")
 	}
 	p.Initialized = true
-	return &playbackConn{p}, nil
+	return &playbackConn{p}, f, nil
 }
 
 // CLK implements spi.Pins.
@@ -336,17 +336,17 @@ func (l *Log) Close() error {
 }
 
 // LimitSpeed implements spi.PortCloser.
-func (l *Log) LimitSpeed(f physic.Frequency) error {
-	err := l.PortCloser.LimitSpeed(f)
-	log.Printf("%s.LimitSpeed(%s) = %v", l.PortCloser, f, err)
-	return err
+func (l *Log) LimitSpeed(f physic.Frequency) (physic.Frequency, error) {
+	rf, err := l.PortCloser.LimitSpeed(f)
+	log.Printf("%s.LimitSpeed(%s) = %s, %v", l.PortCloser, f, rf, err)
+	return rf, err
 }
 
 // Connect implements spi.PortCloser.
-func (l *Log) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
-	c, err := l.PortCloser.Connect(f, mode, bits)
-	log.Printf("%s.Connect(%s, %d, %d) = %v", l.PortCloser, f, mode, bits, err)
-	return &LogConn{c}, err
+func (l *Log) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, physic.Frequency, error) {
+	c, rf, err := l.PortCloser.Connect(f, mode, bits)
+	log.Printf("%s.Connect(%s, %d, %d) = %s, %v", l.PortCloser, f, mode, bits, rf, err)
+	return &LogConn{c}, rf, err
 }
 
 //

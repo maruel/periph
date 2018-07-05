@@ -1093,8 +1093,8 @@ type configFail struct {
 	spitest.Record
 }
 
-func (c *configFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
-	return nil, errors.New("injected error")
+func (c *configFail) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, physic.Frequency, error) {
+	return nil, 0, errors.New("injected error")
 }
 
 func equalUint16(a, b []uint16) bool {

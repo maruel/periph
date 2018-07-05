@@ -123,11 +123,11 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 }
 
 // SetSpeed implements i2c.Bus.
-func (i *I2C) SetSpeed(f physic.Frequency) error {
+func (i *I2C) SetSpeed(f physic.Frequency) (physic.Frequency, error) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	i.halfCycle = f.Period() / 2
-	return nil
+	return f, nil
 }
 
 // SCL implements i2c.Pins.

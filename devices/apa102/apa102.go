@@ -93,7 +93,7 @@ type Opts struct {
 // https://en.wikipedia.org/wiki/Flicker_fusion_threshold is a recommended
 // reading.
 func New(p spi.Port, o *Opts) (*Dev, error) {
-	c, err := p.Connect(20*physic.MegaHertz, spi.Mode3, 8)
+	c, _, err := p.Connect(20*physic.MegaHertz, spi.Mode3, 8)
 	if err != nil {
 		return nil, err
 	}

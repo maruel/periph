@@ -606,11 +606,11 @@ func (p *Pin) FastOut(l gpio.Level) {
 // The user must call either Halt(), In(), Out(), PWM(0,..) or
 // PWM(gpio.DutyMax,..) to stop the clock source and DMA engine before exiting
 // the program.
-func (p *Pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
+func (p *Pin) PWM(duty gpio.Duty, freq physic.Frequency) (physic.Frequency, error) {
 	if duty == 0 {
-		return p.Out(gpio.Low)
+		return 0, p.Out(gpio.Low)
 	} else if duty == gpio.DutyMax {
-		return p.Out(gpio.High)
+		return 0, p.Out(gpio.High)
 	}
 	f := out
 	useDMA := false
@@ -630,14 +630,14 @@ func (p *Pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
 	// Intentionally check later, so a more informative error is returned on
 	// unsupported pins.
 	if drvGPIO.gpioMemory == nil {
-		return p.wrap(errors.New("subsystem gpiomem not initialized"))
+		return 0, p.wrap(errors.New("subsystem gpiomem not initialized"))
 	}
 	if drvDMA.pwmMemory == nil || drvDMA.clockMemory == nil {
-		return p.wrap(errors.New("bcm283x-dma not initialized; try again as root?"))
+		return 0, p.wrap(errors.New("bcm283x-dma not initialized; try again as root?"))
 	}
 	if useDMA {
 		if m := drvDMA.pwmDMAFreq / 2; m < freq {
-			return p.wrap(fmt.Errorf("frequency must be at most %s", m))
+			return 0, p.wrap(fmt.Errorf("frequency must be at most %s", m))
 		}
 
 		// Total cycles in the period
@@ -647,25 +647,25 @@ func (p *Pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
 		var err error
 		// TODO(simokawa): Reuse DMA buffer if possible.
 		if err = p.haltDMA(); err != nil {
-			return p.wrap(err)
+			return 0, p.wrap(err)
 		}
 		// Start clock before DMA starts.
 		if _, err = setPWMClockSource(); err != nil {
-			return p.wrap(err)
+			return 0, p.wrap(err)
 		}
 		if p.dmaCh, p.dmaBuf, err = startPWMbyDMA(p, uint32(rng), dat); err != nil {
-			return p.wrap(err)
+			return 0, p.wrap(err)
 		}
 	} else {
 		if m := drvDMA.pwmBaseFreq / 2; m < freq {
-			return p.wrap(fmt.Errorf("frequency must be at most %s", m))
+			return 0, p.wrap(fmt.Errorf("frequency must be at most %s", m))
 		}
 		// Total cycles in the period
 		rng := uint64(drvDMA.pwmBaseFreq / freq)
 		// Pulse width cycles
 		dat := uint32((rng*uint64(duty) + uint64(gpio.DutyHalf)) / uint64(gpio.DutyMax))
 		if _, err := setPWMClockSource(); err != nil {
-			return p.wrap(err)
+			return 0, p.wrap(err)
 		}
 		// Bit shift for PWM0 and PWM1
 		shift := uint((p.number & 1) * 8)
@@ -684,7 +684,7 @@ func (p *Pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
 	}
 	p.usingClock = true
 	p.setFunction(f)
-	return nil
+	return freq, nil
 }
 
 // StreamIn implements gpiostream.PinIn.
@@ -1410,7 +1410,7 @@ func (d *driverGPIO) Init() (bool, error) {
 	return true, sysfs.I2CSetSpeedHook(setSpeed)
 }
 
-func setSpeed(f physic.Frequency) error {
+func setSpeed(f physic.Frequency) (physic.Frequency, error) {
 	// Writing to "/sys/module/i2c_bcm2708/parameters/baudrate" was confirmed to
 	// not work.
 	// modprobe hangs when a bus is opened, so this must be called *before* the
@@ -1424,7 +1424,7 @@ func setSpeed(f physic.Frequency) error {
 			return fmt.Errorf("bcm283x: failed to reload driver i2c_bcm2708: %v", err)
 		}
 	*/
-	return errors.New("bcm283x: to change the I²C bus speed, please refer to https://periph.io/platform/raspberrypi/#i²c")
+	return 0, errors.New("bcm283x: to change the I²C bus speed, please refer to https://periph.io/platform/raspberrypi/#i²c")
 }
 
 func init() {

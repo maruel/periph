@@ -46,7 +46,7 @@ type Bus interface {
 	//
 	// On linux due to the way the I²C sysfs driver is exposed in userland,
 	// calling this function will likely affect *all* I²C buses on the host.
-	SetSpeed(f physic.Frequency) error
+	SetSpeed(f physic.Frequency) (physic.Frequency, error)
 }
 
 // BusCloser is an I²C bus that can be closed.

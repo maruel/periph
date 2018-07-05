@@ -25,7 +25,7 @@ import (
 
 // I2CSetSpeedHook can be set by a driver to enable changing the I²C buses
 // speed.
-func I2CSetSpeedHook(h func(f physic.Frequency) error) error {
+func I2CSetSpeedHook(h func(f physic.Frequency) (physic.Frequency, error)) error {
 	if h == nil {
 		return errors.New("sysfs-i2c: hook must not be nil")
 	}
@@ -128,19 +128,19 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 }
 
 // SetSpeed implements i2c.Bus.
-func (i *I2C) SetSpeed(f physic.Frequency) error {
+func (i *I2C) SetSpeed(f physic.Frequency) (physic.Frequency, error) {
 	if f > 100*physic.MegaHertz {
-		return fmt.Errorf("sysfs-i2c: invalid speed %s; maximum supported clock is 100MHz", f)
+		return 0, fmt.Errorf("sysfs-i2c: invalid speed %s; maximum supported clock is 100MHz", f)
 	}
 	if f < physic.KiloHertz {
-		return fmt.Errorf("sysfs-i2c: invalid speed %s; minimum supported clock is 1KHz; did you forget to multiply by physic.KiloHertz?", f)
+		return 0, fmt.Errorf("sysfs-i2c: invalid speed %s; minimum supported clock is 1KHz; did you forget to multiply by physic.KiloHertz?", f)
 	}
 	drvI2C.mu.Lock()
 	defer drvI2C.mu.Unlock()
 	if drvI2C.setSpeed != nil {
 		return drvI2C.setSpeed(f)
 	}
-	return errors.New("sysfs-i2c: not supported")
+	return 0, errors.New("sysfs-i2c: not supported")
 }
 
 // SCL implements i2c.Pins.
@@ -323,7 +323,7 @@ type i2cMsg struct {
 type driverI2C struct {
 	mu       sync.Mutex
 	buses    []string
-	setSpeed func(f physic.Frequency) error
+	setSpeed func(f physic.Frequency) (physic.Frequency, error)
 }
 
 func (d *driverI2C) String() string {

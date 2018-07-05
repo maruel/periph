@@ -24,10 +24,10 @@ import (
 func TestRecordRaw(t *testing.T) {
 	b := bytes.Buffer{}
 	r := NewRecordRaw(&b)
-	if err := r.LimitSpeed(-100); err != nil {
+	if _, err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
-	c, err := r.Connect(0, spi.Mode0, 0)
+	c, _, err := r.Connect(0, spi.Mode0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,10 +59,10 @@ func TestRecord_empty(t *testing.T) {
 	if s := r.String(); s != "record" {
 		t.Fatal(s)
 	}
-	if err := r.LimitSpeed(-100); err != nil {
+	if _, err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
-	c, err := r.Connect(0, spi.Mode0, 0)
+	c, _, err := r.Connect(0, spi.Mode0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestRecord_empty(t *testing.T) {
 
 func TestRecord_Tx_empty(t *testing.T) {
 	r := Record{}
-	c, err := r.Connect(0, spi.Mode0, 8)
+	c, _, err := r.Connect(0, spi.Mode0, 8)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -138,10 +138,10 @@ func TestPlayback(t *testing.T) {
 	if s := p.String(); s != "playback" {
 		t.Fatal(s)
 	}
-	if err := p.LimitSpeed(-100); err != nil {
+	if _, err := p.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
-	c, err := p.Connect(0, spi.Mode0, 0)
+	c, _, err := p.Connect(0, spi.Mode0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestPlayback_Tx_err(t *testing.T) {
 			DontPanic: true,
 		},
 	}
-	c, err := p.Connect(0, spi.Mode0, 8)
+	c, _, err := p.Connect(0, spi.Mode0, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +192,7 @@ func TestPlayback_Tx_err(t *testing.T) {
 
 func TestPlayback_Tx_empty(t *testing.T) {
 	p := Playback{Playback: conntest.Playback{DontPanic: true}}
-	c, err := p.Connect(0, spi.Mode0, 8)
+	c, _, err := p.Connect(0, spi.Mode0, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func TestPlayback_Tx(t *testing.T) {
 			Ops: []conntest.IO{{W: []byte{10}, R: []byte{12}}},
 		},
 	}
-	c, err := p.Connect(0, spi.Mode0, 8)
+	c, _, err := p.Connect(0, spi.Mode0, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,10 +237,10 @@ func TestRecord_Playback(t *testing.T) {
 			CSPin:   &gpiotest.Pin{N: "CS"},
 		},
 	}
-	if err := r.LimitSpeed(-100); err != nil {
+	if _, err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
-	c, err := r.Connect(0, spi.Mode0, 8)
+	c, _, err := r.Connect(0, spi.Mode0, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -305,10 +305,10 @@ func TestLog_Playback(t *testing.T) {
 			CSPin:   &gpiotest.Pin{N: "CS"},
 		},
 	}
-	if err := r.LimitSpeed(-100); err != nil {
+	if _, err := r.LimitSpeed(-100); err != nil {
 		t.Fatal(err)
 	}
-	c, err := r.Connect(0, spi.Mode0, 0)
+	c, _, err := r.Connect(0, spi.Mode0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

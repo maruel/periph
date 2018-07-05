@@ -72,7 +72,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 	defer spiDev.Close()
 
 	// Set SPI parameters.
-	c, err := spiDev.Connect(4*physic.MegaHertz, spi.Mode0, 8)
+	c, _, err := spiDev.Connect(4*physic.MegaHertz, spi.Mode0, 8)
 	if err != nil {
 		return fmt.Errorf("error setting SPI parameters: %v", err)
 	}

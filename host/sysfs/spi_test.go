@@ -197,7 +197,7 @@ func TestSPI_other(t *testing.T) {
 	if err := p.LimitSpeed(100*physic.Hertz - 1); err == nil {
 		t.Fatal("invalid speed")
 	}
-	if err := p.LimitSpeed(physic.KiloHertz); err != nil {
+	if _, err := p.LimitSpeed(physic.KiloHertz); err != nil {
 		t.Fatal(err)
 	}
 	if v := p.MaxTxSize(); v != drvSPI.bufSize {
@@ -213,10 +213,10 @@ func TestSPI_Connect_Err(t *testing.T) {
 	if _, err := p.Connect(100*physic.Hertz-1, spi.Mode0, 8); err == nil {
 		t.Fatal("invalid speed")
 	}
-	if _, err := p.Connect(100*physic.Hertz, -1, 8); err == nil {
+	if _, _, err := p.Connect(100*physic.Hertz, -1, 8); err == nil {
 		t.Fatal("invalid mode")
 	}
-	if _, err := p.Connect(100*physic.Hertz, spi.Mode0, 0); err == nil {
+	if _, _, err := p.Connect(100*physic.Hertz, spi.Mode0, 0); err == nil {
 		t.Fatal("invalid bit")
 	}
 	_, err := p.Connect(100*physic.Hertz, spi.Mode0, 8)
@@ -241,7 +241,7 @@ func TestSPI_Connect_Half(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := p.Connect(100*physic.Hertz, spi.Mode0, 8); err == nil {
+	if _, _, err := p.Connect(100*physic.Hertz, spi.Mode0, 8); err == nil {
 		t.Fatal("double initialization")
 	}
 	if d := c.Duplex(); d != conn.Half {
@@ -291,7 +291,7 @@ func TestSPI_OpenClose(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err = p.Connect(100*physic.Hertz, spi.Mode0, 8); err == nil {
+	if _, _, err = p.Connect(100*physic.Hertz, spi.Mode0, 8); err == nil {
 		t.Fatal("an spi object cannot be reused for now")
 	}
 }

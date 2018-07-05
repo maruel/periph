@@ -180,7 +180,7 @@ func (f *fakeBus) Tx(addr uint16, w, r []byte) error {
 	return f.err
 }
 
-func (f *fakeBus) SetSpeed(freq physic.Frequency) error {
+func (f *fakeBus) SetSpeed(freq physic.Frequency) (physic.Frequency, error) {
 	f.freq = freq
-	return f.err
+	return freq, f.err
 }

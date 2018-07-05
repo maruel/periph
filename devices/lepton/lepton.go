@@ -62,7 +62,7 @@ type Frame struct {
 func New(p spi.Port, i i2c.Bus) (*Dev, error) {
 	// TODO(maruel): Switch to 16 bits per word, so that big endian 16 bits word
 	// decoding is done by the SPI driver.
-	s, err := p.Connect(20*physic.MegaHertz, spi.Mode3, 8)
+	s, _, err := p.Connect(20*physic.MegaHertz, spi.Mode3, 8)
 	if err != nil {
 		return nil, err
 	}

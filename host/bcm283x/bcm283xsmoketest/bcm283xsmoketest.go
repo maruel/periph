@@ -109,7 +109,7 @@ func (s *SmokeTest) testPWMbyDMA(p1, p2 *loggingPin) error {
 	}
 	time.Sleep(time.Microsecond)
 
-	if err := p1.PWM(0, freq); err != nil {
+	if _, err := p1.PWM(0, freq); err != nil {
 		return err
 	}
 	time.Sleep(time.Microsecond)
@@ -117,7 +117,7 @@ func (s *SmokeTest) testPWMbyDMA(p1, p2 *loggingPin) error {
 		return fmt.Errorf("unexpected %s value; expected Low", p1)
 	}
 
-	if err := p1.PWM(gpio.DutyMax, freq); err != nil {
+	if _, err := p1.PWM(gpio.DutyMax, freq); err != nil {
 		return err
 	}
 	time.Sleep(time.Microsecond)
@@ -126,11 +126,11 @@ func (s *SmokeTest) testPWMbyDMA(p1, p2 *loggingPin) error {
 	}
 
 	// DMA PWM supports arbitrary duty cycle.
-	if err := p1.PWM(gpio.DutyHalf/2, freq); err != nil {
+	if _, err := p1.PWM(gpio.DutyHalf/2, freq); err != nil {
 		return err
 	}
 
-	if err := p1.PWM(gpio.DutyHalf, freq); err != nil {
+	if _, err := p1.PWM(gpio.DutyHalf, freq); err != nil {
 		return err
 	}
 
@@ -146,7 +146,7 @@ func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
 	}
 	time.Sleep(time.Microsecond)
 
-	if err := p1.PWM(0, freq); err != nil {
+	if _, err := p1.PWM(0, freq); err != nil {
 		return err
 	}
 	time.Sleep(time.Microsecond)
@@ -154,7 +154,7 @@ func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
 		return fmt.Errorf("unexpected %s value; expected Low", p1)
 	}
 
-	if err := p1.PWM(gpio.DutyMax, freq); err != nil {
+	if _, err := p1.PWM(gpio.DutyMax, freq); err != nil {
 		return err
 	}
 	time.Sleep(time.Microsecond)
@@ -163,11 +163,11 @@ func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
 	}
 
 	// A real PWM supports arbitrary duty cycle.
-	if err := p1.PWM(gpio.DutyHalf/2, freq); err != nil {
+	if _, err := p1.PWM(gpio.DutyHalf/2, freq); err != nil {
 		return err
 	}
 
-	if err := p1.PWM(gpio.DutyHalf, freq); err != nil {
+	if _, err := p1.PWM(gpio.DutyHalf, freq); err != nil {
 		return err
 	}
 
@@ -207,7 +207,7 @@ func (s *SmokeTest) testStreamIn(p1, p2 *loggingPin) (err error) {
 			err = err2
 		}
 	}()
-	if err = p2.PWM(gpio.DutyHalf, freq); err != nil {
+	if _, err := p2.PWM(gpio.DutyHalf, freq); err != nil {
 		return err
 	}
 	// Gather 0.1 second of readings at 10kHz sampling rate.
@@ -326,7 +326,7 @@ func (p *loggingPin) Out(l gpio.Level) error {
 	return p.Pin.Out(l)
 }
 
-func (p *loggingPin) PWM(duty gpio.Duty, f physic.Frequency) error {
+func (p *loggingPin) PWM(duty gpio.Duty, f physic.Frequency) (physic.Frequency, error) {
 	fmt.Printf("  %s %s.PWM(%s, %s)\n", since(p.start), p, duty, f)
 	return p.Pin.PWM(duty, f)
 }

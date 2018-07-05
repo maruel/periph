@@ -63,7 +63,7 @@ func mainImpl() error {
 	}
 
 	if hz != 0 {
-		if err := i2cBus.SetSpeed(hz); err != nil {
+		if _, err := i2cBus.SetSpeed(hz); err != nil {
 			return fmt.Errorf("couldn't set the i2c bus speed - %s", err)
 		}
 	}

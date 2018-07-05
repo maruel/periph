@@ -26,7 +26,7 @@ func Example() {
 		log.Fatal(err)
 	}
 	defer p.Close()
-	c, err := p.Connect(physic.MegaHertz, spi.Mode3, 8)
+	c, _, err := p.Connect(physic.MegaHertz, spi.Mode3, 8)
 	if err != nil {
 		log.Fatal(err)
 	}

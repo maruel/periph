@@ -38,10 +38,10 @@ func TestI2C_faked(t *testing.T) {
 	if err := bus.Tx(1, []byte{0}, []byte{0}); err != nil {
 		t.Fatal(err)
 	}
-	if bus.SetSpeed(0) == nil {
+	if _, err := bus.SetSpeed(0); err == nil {
 		t.Fatal("0 is invalid")
 	}
-	if bus.SetSpeed(physic.Hertz) == nil {
+	if _, err := bus.SetSpeed(physic.Hertz); err == nil {
 		t.Fatal("can't set speed")
 	}
 	bus.SCL()
@@ -92,10 +92,10 @@ func TestDriver_Init(t *testing.T) {
 	if I2CSetSpeedHook(nil) == nil {
 		t.Fatal("must fail on nil hook")
 	}
-	if err := I2CSetSpeedHook(func(f physic.Frequency) error { return nil }); err != nil {
+	if err := I2CSetSpeedHook(func(f physic.Frequency) (physic.Frequency, error) { return f, nil }); err != nil {
 		t.Fatal(err)
 	}
-	if I2CSetSpeedHook(func(f physic.Frequency) error { return nil }) == nil {
+	if I2CSetSpeedHook(func(f physic.Frequency) (physic.Frequency, error) { return f, nil }) == nil {
 		t.Fatal("second I2CSetSpeedHook must fail")
 	}
 }

@@ -64,11 +64,11 @@ func (r *Record) Tx(addr uint16, w, read []byte) error {
 }
 
 // SetSpeed implements i2c.Bus.
-func (r *Record) SetSpeed(f physic.Frequency) error {
+func (r *Record) SetSpeed(f physic.Frequency) (physic.Frequency, error) {
 	if r.Bus != nil {
 		return r.Bus.SetSpeed(f)
 	}
-	return nil
+	return f, nil
 }
 
 // SCL implements i2c.Pins.
@@ -141,8 +141,8 @@ func (p *Playback) Tx(addr uint16, w, r []byte) error {
 }
 
 // SetSpeed implements i2c.Bus.
-func (p *Playback) SetSpeed(f physic.Frequency) error {
-	return nil
+func (p *Playback) SetSpeed(f physic.Frequency) (physic.Frequency, error) {
+	return f, nil
 }
 
 // SCL implements i2c.Pins.

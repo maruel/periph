@@ -56,9 +56,9 @@ func (s *SPI) Close() error {
 }
 
 // Connect implements spi.PortCloser.
-func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, error) {
+func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, physic.Frequency, error) {
 	if f < 0 {
-		return nil, errors.New("bitbang-spi: invalid frequency")
+		return nil, 0, errors.New("bitbang-spi: invalid frequency")
 	}
 	if mode&spi.HalfDuplex == spi.HalfDuplex {
 		return nil, errors.New("bitbang-spi: half-duplex mode not supported")
@@ -89,13 +89,13 @@ func (s *SPI) Connect(f physic.Frequency, mode spi.Mode, bits int) (spi.Conn, er
 		return nil, fmt.Errorf("bitbang-spi: failed to initialize pins: %v", err)
 	}
 
-	return &s.spiConn, nil
+	return &s.spiConn, f, nil
 }
 
 // LimitSpeed implements spi.PortCloser.
-func (s *SPI) LimitSpeed(f physic.Frequency) error {
+func (s *SPI) LimitSpeed(f physic.Frequency) (physic.Frequency, error) {
 	if f <= 0 {
-		return errors.New("bitbang-spi: invalid frequency")
+		return 0, errors.New("bitbang-spi: invalid frequency")
 	}
 	s.spiConn.mu.Lock()
 	defer s.spiConn.mu.Unlock()
@@ -103,7 +103,7 @@ func (s *SPI) LimitSpeed(f physic.Frequency) error {
 	if s.spiConn.freqDev == 0 || s.spiConn.freqPort < s.spiConn.freqDev {
 		s.spiConn.halfCycle = f.Period() / 2
 	}
-	return nil
+	return f, nil
 }
 
 // CLK implements spi.Pins.

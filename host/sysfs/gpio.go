@@ -303,8 +303,8 @@ func (p *Pin) Out(l gpio.Level) error {
 // PWM implements gpio.PinOut.
 //
 // This is not supported on sysfs.
-func (p *Pin) PWM(gpio.Duty, physic.Frequency) error {
-	return p.wrap(errors.New("pwm is not supported via sysfs"))
+func (p *Pin) PWM(gpio.Duty, physic.Frequency) (physic.Frequency, error) {
+	return 0, p.wrap(errors.New("pwm is not supported via sysfs"))
 }
 
 //

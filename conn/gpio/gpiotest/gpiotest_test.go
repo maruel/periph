@@ -168,7 +168,7 @@ func TestByName(t *testing.T) {
 		t.Fatalf("expected alias, got: %T", p)
 	}
 	p = r.Real()
-	if err := p.PWM(gpio.DutyHalf, physic.KiloHertz); err != nil {
+	if _, err := p.PWM(gpio.DutyHalf, physic.KiloHertz); err != nil {
 		t.Fatalf("unexpected failure: %v", err)
 	}
 }

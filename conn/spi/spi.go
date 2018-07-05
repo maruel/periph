@@ -150,7 +150,7 @@ type Port interface {
 	// duplex (shared MISO and MOSI) or if CS is not needed.
 	//
 	// bits is the number of bits per word. Generally you should use 8.
-	Connect(f physic.Frequency, mode Mode, bits int) (Conn, error)
+	Connect(f physic.Frequency, mode Mode, bits int) (Conn, physic.Frequency, error)
 }
 
 // PortCloser is a SPI port that can be closed.
@@ -168,7 +168,7 @@ type PortCloser interface {
 	// This function can be called multiple times and resets the previous value.
 	// 0 is not a valid value for f. The lowest speed between the port speed and
 	// the device speed is selected.
-	LimitSpeed(f physic.Frequency) error
+	LimitSpeed(f physic.Frequency) (physic.Frequency, error)
 }
 
 // Pins defines the pins that a SPI port interconnect is using on the host.

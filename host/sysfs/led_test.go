@@ -57,7 +57,7 @@ func TestLED_not_supported(t *testing.T) {
 	if pull := l.Pull(); pull != gpio.PullNoChange {
 		t.Fatal(pull)
 	}
-	if l.PWM(gpio.DutyHalf, physic.KiloHertz) == nil {
+	if _, err := l.PWM(gpio.DutyHalf, physic.KiloHertz); err == nil {
 		t.Fatal("not supported")
 	}
 }

@@ -97,7 +97,7 @@ func ExamplePinOut_pWM() {
 	}
 
 	// Generate a 33% duty cycle 10KHz signal.
-	if err := p.PWM(gpio.DutyMax/3, 10*physic.KiloHertz); err != nil {
+	if _, err := p.PWM(gpio.DutyMax/3, 10*physic.KiloHertz); err != nil {
 		log.Fatal(err)
 	}
 }

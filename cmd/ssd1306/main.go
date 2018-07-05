@@ -168,7 +168,7 @@ func mainImpl() error {
 		}
 		defer c.Close()
 		if hz != 0 {
-			if err := c.LimitSpeed(hz); err != nil {
+			if _, err := c.LimitSpeed(hz); err != nil {
 				return err
 			}
 		}
@@ -191,7 +191,7 @@ func mainImpl() error {
 		}
 		defer c.Close()
 		if hz != 0 {
-			if err := c.SetSpeed(hz); err != nil {
+			if _, err := c.SetSpeed(hz); err != nil {
 				return err
 			}
 		}

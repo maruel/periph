@@ -438,8 +438,8 @@ func (p *Pin) FastOut(l gpio.Level) {
 }
 
 // PWM implements gpio.PinOut.
-func (p *Pin) PWM(gpio.Duty, physic.Frequency) error {
-	return p.wrap(errors.New("not available on this CPU architecture"))
+func (p *Pin) PWM(gpio.Duty, physic.Frequency) (physic.Frequency, error) {
+	return 0, p.wrap(errors.New("not available on this CPU architecture"))
 }
 
 //

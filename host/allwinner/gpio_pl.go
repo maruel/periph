@@ -334,9 +334,9 @@ func (p *PinPL) FastOut(l gpio.Level) {
 }
 
 // PWM implements gpio.PinOut.
-func (p *PinPL) PWM(gpio.Duty, physic.Frequency) error {
+func (p *PinPL) PWM(gpio.Duty, physic.Frequency) (physic.Frequency, error) {
 	// TODO(maruel): PWM support for PL10.
-	return p.wrap(errors.New("not available on this CPU architecture"))
+	return 0, p.wrap(errors.New("not available on this CPU architecture"))
 }
 
 //

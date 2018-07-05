@@ -128,7 +128,7 @@ func mainImpl() error {
 		return err
 	}
 	defer s.Close()
-	c, err := s.Connect(hz, m, *bits)
+	c, _, err := s.Connect(hz, m, *bits)
 	if err != nil {
 		return err
 	}

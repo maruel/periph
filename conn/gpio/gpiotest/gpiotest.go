@@ -141,12 +141,12 @@ func (p *Pin) Out(l gpio.Level) error {
 }
 
 // PWM implements gpio.PinOut.
-func (p *Pin) PWM(duty gpio.Duty, f physic.Frequency) error {
+func (p *Pin) PWM(duty gpio.Duty, f physic.Frequency) (physic.Frequency, error) {
 	p.Lock()
 	defer p.Unlock()
 	p.D = duty
 	p.F = f
-	return nil
+	return f, nil
 }
 
 // LogPinIO logs when its state changes.

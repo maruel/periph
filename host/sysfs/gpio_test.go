@@ -192,7 +192,7 @@ func TestPin_Out(t *testing.T) {
 
 func TestPin_PWM(t *testing.T) {
 	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
-	if p.PWM(gpio.DutyHalf, physic.KiloHertz) == nil {
+	if _, err := p.PWM(gpio.DutyHalf, physic.KiloHertz); err == nil {
 		t.Fatal("sysfs-gpio doesn't support PWM")
 	}
 }
