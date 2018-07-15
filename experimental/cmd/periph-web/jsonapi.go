@@ -47,6 +47,7 @@ func (j *jsonAPI) getAPIs() []apiHandler {
 		{"/api/periph/v1/gpio/in", j.apiGPIOIn},
 		{"/api/periph/v1/gpio/list", j.apiGPIOList},
 		{"/api/periph/v1/gpio/read", j.apiGPIORead},
+		{"/api/periph/v1/gpio/wait", j.apiGPIOWait},
 		{"/api/periph/v1/gpio/out", j.apiGPIOOut},
 		{"/api/periph/v1/header/list", j.apiHeaderList},
 		{"/api/periph/v1/i2c/list", j.apiI2CList},
@@ -147,6 +148,23 @@ func (j *jsonAPI) apiGPIORead(in []string) ([]int, int) {
 		v := -1
 		if p := gpioreg.ByName(name); p != nil {
 			if v = 0; p.Read() {
+				v = 1
+			}
+		}
+		out = append(out, v)
+	}
+	return out, 200
+}
+
+// /api/periph/v1/gpio/wait
+
+func (j *jsonAPI) apiGPIOWait(in []string) ([]int, int) {
+	// Wait for edges.
+	out := make([]int, 0, len(in))
+	for _, name := range in {
+		v := -1
+		if p := gpioreg.ByName(name); p != nil {
+			if v = 0; p.WaitForEdge(-1) {
 				v = 1
 			}
 		}
