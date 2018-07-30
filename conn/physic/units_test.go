@@ -435,6 +435,15 @@ func TestPicoAsString(t *testing.T) {
 	}
 }
 
+func TestEstimateEarthAltitude(t *testing.T) {
+	// 34.843m
+	if a := EstimateEarthAltitude(SeaLevel, 100900*Pascal, 10*Celsius+ZeroCelsius); a != 34843645407*NanoMetre {
+		t.Fatal(int64(a))
+	}
+}
+
+//
+
 func TestNanoAsString(t *testing.T) {
 	data := []struct {
 		in       int64

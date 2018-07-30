@@ -6,6 +6,7 @@ package physic
 
 import (
 	"errors"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -1669,6 +1670,19 @@ const (
 	maxMagneticFluxDensity = 9223372036854775807 * NanoTesla
 	minMagneticFluxDensity = -9223372036854775807 * NanoTesla
 )
+
+// EarthAltitude converts an atmospheric pressure into an approximate altitude.
+//
+// p0 is the current sea level pressure to use, which can be approximated as
+// SeaLevel if the value is unknown.
+//
+// The estimation is based on the hypsometric formula, which is only valid up
+// to 11km on earth.
+func EstimateEarthAltitude(p0, p Pressure, t Temperature) Distance {
+	const f = 1. / 0.0065
+	a := math.Pow(float64(p0)/float64(p), 1./5.257)
+	return Distance((a - 1.) * float64(t) * f)
+}
 
 //
 
