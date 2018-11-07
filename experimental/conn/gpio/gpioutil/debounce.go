@@ -157,5 +157,25 @@ func (d *debounced) Real() gpio.PinIO {
 	return d.PinIO
 }
 
+// isDenoising returns the amount of time left where this filter is still in
+// effect, if it is.
+func (d *debounced) isDenoising() time.Duration {
+	delta := d.lastGlitch.Sub(d.lastSteady)
+	if delta >= 0 && delta < d.denoise {
+		return d.denoise - delta
+	}
+	return 0
+}
+
+// isDebouncing returns the amount of time left where this filter is still in
+// effect, if it is.
+func (d *debounced) isDebouncing() time.Duration {
+	delta := d.lastSteady.Sub(d.lastGlitch)
+	if delta >= 0 && delta < d.debounce {
+		return d.debounce - delta
+	}
+	return 0
+}
+
 var now = time.Now
 var _ gpio.PinIO = &debounced{}
