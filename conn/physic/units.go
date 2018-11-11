@@ -658,13 +658,6 @@ func (f Frequency) Period() time.Duration {
 	return (time.Second*time.Duration(Hertz) + time.Duration(f/2)) / time.Duration(f)
 }
 
-// Duration returns the duration of one cycle at this frequency.
-//
-// Deprecated: This method is removed in v4.0.0. Use Period() instead.
-func (f Frequency) Duration() time.Duration {
-	return f.Period()
-}
-
 // PeriodToFrequency returns the frequency for a period of this interval.
 //
 // A 0s period returns a 0Hz frequency.

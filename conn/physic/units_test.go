@@ -137,13 +137,6 @@ func TestFrequency_Period(t *testing.T) {
 	}
 }
 
-func TestFrequency_Duration(t *testing.T) {
-	// TODO(maruel): To be removed in v4.0.0.
-	if MicroHertz.Duration() != MicroHertz.Period() {
-		t.Fatal("should have the same result")
-	}
-}
-
 func TestFrequency_PeriodToFrequency(t *testing.T) {
 	data := []struct {
 		in       time.Duration
