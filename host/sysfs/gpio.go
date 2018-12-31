@@ -51,9 +51,8 @@ type Pin struct {
 	fValue     fileIO    // handle to /sys/class/gpio/gpio*/value; never closed
 	buf        [4]byte   // scratch buffer for Func(), Read() and Out()
 
-	muCancel         sync.Mutex // Used in haltEdge() and WaitForEdge()
-	cancelListenEdge func()     // Cancels a pending ListenEdges()
-	until            time.Time  // Edges before this timestamp are ignored
+	muCancel          sync.Mutex // Used in haltEdge and WaitForEdge
+	cancelWaitForEdge func()     // Cancels a pending WaitForEdge
 }
 
 // String implements conn.Resource.
@@ -184,18 +183,24 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			}
 			p.edge = edge
 		}
-
-		fd := p.fValue.Fd()
-		p.wg.Add(1)
-		go func() {
-			p.until = time.Now()
-			p.muCancel.Unlock()
-			events.listen(ctx, fd, p.edgeChan)
-			p.wg.Done()
-		}()
-		return nil
+		var b []byte
+		switch edge {
+		case gpio.RisingEdge:
+			b = bRising
+		case gpio.FallingEdge:
+			b = bFalling
+		case gpio.BothEdges:
+			b = bBoth
+		}
+		if err := seekWrite(p.fEdge, b); err != nil {
+			return p.wrap(err)
+		}
+		p.resetCancel(nil)
 	}
-	return p.haltEdge()
+	// Reset the accumulated events.
+	p.event.ClearAccumulated()
+	p.edge = edge
+	return nil
 }
 
 // Read implements gpio.PinIn.
@@ -220,61 +225,25 @@ func (p *Pin) Read() gpio.Level {
 
 // WaitForEdge implements gpio.PinIn.
 func (p *Pin) WaitForEdge(timeout time.Duration) bool {
-	// Run "mostly" lockless.
-	p.muCancel.Lock()
-	until := p.until
-	p.muCancel.Unlock()
-
-	// Edge detection is not enabled.
-	if until.IsZero() {
-		return false
-	}
-
+	// Run mostly lockless (resetCancel() takes a lock), as the normal use is to
+	// call in a busy loop while potentially other functions are called.
+	ctx := context.Background()
+	var cancel func()
 	if timeout == -1 {
 		// No timeout.
-		for {
-			select {
-			case t := <-p.edgeChan:
-				if until.Before(t) {
-					return true
-				}
-				// Else loop again.
-			case <-p.cancelWaitChan:
-				// Edge waiting was canceled.
-				return false
-			}
-		}
+		ctx, cancel = context.WithCancel(ctx)
+	} else if timeout == 0 {
+		// Do a quick peek, ignoring the rest.
+		return p.event.Peek().IsZero()
+	} else {
+		// Normal timeout.
+		ctx, cancel = context.WithTimeout(ctx, timeout)
 	}
 
-	if timeout == 0 {
-		// Do a quick peek, ignoring the rest. Empties p.edgeChan if needed.
-		for {
-			select {
-			case t := <-p.edgeChan:
-				if until.Before(t) {
-					return true
-				}
-			default:
-				return false
-			}
-		}
-	}
-
-	// Normal timeout.
-	c := time.After(timeout)
-	for {
-		select {
-		case t := <-p.edgeChan:
-			if until.Before(t) {
-				return true
-			}
-		case <-c:
-			return false
-		case <-p.cancelWaitChan:
-			// Edge waiting was canceled.
-			return false
-		}
-	}
+	p.resetCancel(cancel)
+	t := p.event.WaitCtx(ctx)
+	p.resetCancel(nil)
+	return !t.IsZero()
 }
 
 // Pull implements gpio.PinIn.
@@ -402,30 +371,22 @@ func (p *Pin) haltEdge() error {
 			return p.wrap(err)
 		}
 		p.edge = gpio.NoEdge
-		p.muCancel.Lock()
-		p.cancelWait()
-		p.muCancel.Unlock()
 	}
+	// Reset the accumulated events.
+	p.event.ClearAccumulated()
+	p.resetCancel(nil)
 	return nil
 }
 
-// cancelWait unblocks any pending WaitForEdge(), and stop edge listening.
-//
-// Must be called with p.muCancel held.
-func (p *Pin) cancelWait() {
-	p.cancelListenEdge()
-	for {
-		select {
-		case p.cancelWaitChan <- struct{}{}:
-		case <-p.edgeChan:
-		default:
-			goto end
-		}
+// resetCancel unblocks any pending WaitForEdge(), and optional sets a new
+// canceler.
+func (p *Pin) resetCancel(new func()) {
+	p.muCancel.Lock()
+	if p.cancelWaitForEdge != nil {
+		p.cancelWaitForEdge()
 	}
-end:
-	p.wg.Wait()
-	p.cancelListenEdge = func() {}
-	p.until = time.Time{}
+	p.cancelWaitForEdge = new
+	p.muCancel.Unlock()
 }
 
 func (p *Pin) wrap(err error) error {

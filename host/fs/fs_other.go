@@ -6,7 +6,10 @@
 
 package fs
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 const isLinux = false
 
@@ -20,6 +23,17 @@ func (e *event) makeEvent(f uintptr) error {
 	return errors.New("fs: unreachable code")
 }
 
-func (e *event) wait(timeoutms int) (int, error) {
-	return 0, errors.New("fs: unreachable code")
+func (e *event) wait(ctx context.Context) (EdgeEvent, bool) {
+	return EdgeEvent{}, false
+}
+
+func (e *event) peek() (EdgeEvent, bool) {
+	return EdgeEvent{}, false
+}
+
+func (e *event) clearAccumulated() {
+}
+
+func (e *event) closeEvent() error {
+	return errors.New("fs: unreachable code")
 }

@@ -9,9 +9,11 @@
 package fs
 
 import (
+	"context"
 	"errors"
 	"os"
 	"sync"
+	"time"
 )
 
 // Ioctler is a file handle that supports ioctl calls.
@@ -66,6 +68,8 @@ func (f *File) Ioctl(op uint, data uintptr) error {
 }
 
 // Event is a file system event.
+//
+// Deprecated: Use ListenEdges instead.
 type Event struct {
 	event
 }
@@ -89,8 +93,43 @@ func (e *Event) MakeEvent(fd uintptr) error {
 }
 
 // Wait waits for an event or the specified amount of time.
+//
+// Returns the unfiltered epoll events value.
+//
+// Deprecated: Use WaitCtx instead.
 func (e *Event) Wait(timeoutms int) (int, error) {
-	return e.event.wait(timeoutms)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutms)*time.Millisecond)
+	t := e.event.wait(ctx)
+	cancel()
+	if t.IsZero() {
+		// 0 means timeout.
+		return 0, nil
+	}
+	return 1, nil
+}
+
+// WaitCtx waits for an event or until the context is Done.
+//
+// Return a zero Time if no event was detected.
+func (e *Event) WaitCtx(ctx context.Context) time.Time {
+	return e.event.wait(ctx)
+}
+
+// Peek returns if a event was already pending, without waiting.
+func (e *Event) Peek() time.Time {
+	return e.event.peek()
+}
+
+// ClearAccumulated clears any accumulated edge.
+func (e *Event) ClearAccumulated() {
+	e.event.clearAccumulated()
+}
+
+//
+
+// ListenEdges listens for epoll edges on an OS file descriptor.
+func ListenEdges(ctx context.Context, f *os.File, c chan<- time.Time) error {
+	return events.listen(ctx, f.Fd(), c)
 }
 
 //

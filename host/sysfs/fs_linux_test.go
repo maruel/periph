@@ -256,6 +256,12 @@ func TestWakeUpLoop(t *testing.T) {
 	ev.wakeUpLoop(nil)
 }
 
+func TestEvent_Wait(t *testing.T) {
+	ev := event{}
+	// Make sure it doesn't hang.
+	ev.wait(context.Background())
+}
+
 //
 
 // getContext returns an auto-cancelling context after 5 seconds.
