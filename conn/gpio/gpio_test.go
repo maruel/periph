@@ -5,6 +5,7 @@
 package gpio
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -138,7 +139,7 @@ func TestInvalid(t *testing.T) {
 	if err := INVALID.Out(Low); err != errInvalidPin {
 		t.Fatal(err)
 	}
-	if err := INVALID.PWM(DutyMax, physic.Hertz); err != errInvalidPin {
+	if err := INVALID.PWM(context.Background(), DutyMax, physic.Hertz); err != errInvalidPin {
 		t.Fatal(err)
 	}
 	if f := INVALID.Func(); f != pin.FuncNone {

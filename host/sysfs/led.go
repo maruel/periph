@@ -5,6 +5,7 @@
 package sysfs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -162,8 +163,10 @@ func (l *LED) Out(level gpio.Level) error {
 
 // PWM implements gpio.PinOut.
 //
-// This sets the intensity level, if supported. The frequency is ignored.
-func (l *LED) PWM(d gpio.Duty, f physic.Frequency) error {
+// This sets the intensity level, if supported.
+//
+// The context and frequency are ignored.
+func (l *LED) PWM(ctx context.Context, d gpio.Duty, f physic.Frequency) error {
 	err := l.open()
 	if err != nil {
 		return err
@@ -174,8 +177,7 @@ func (l *LED) PWM(d gpio.Duty, f physic.Frequency) error {
 		return err
 	}
 	v := (d + gpio.DutyMax/512) / (gpio.DutyMax / 256)
-	_, err = l.fBrightness.Write([]byte(strconv.Itoa(int(v))))
-	return err
+	return l.fBrightness.Write([]byte(strconv.Itoa(int(v))))
 }
 
 //

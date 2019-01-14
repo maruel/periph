@@ -5,6 +5,7 @@
 package allwinner
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -329,7 +330,7 @@ func (p *PinPL) FastOut(l gpio.Level) {
 }
 
 // PWM implements gpio.PinOut.
-func (p *PinPL) PWM(gpio.Duty, physic.Frequency) error {
+func (p *PinPL) PWM(context.Context, gpio.Duty, physic.Frequency) error {
 	// TODO(maruel): PWM support for PL10.
 	return p.wrap(errors.New("not available on this CPU architecture"))
 }

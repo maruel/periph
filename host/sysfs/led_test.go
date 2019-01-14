@@ -5,6 +5,7 @@
 package sysfs
 
 import (
+	"context"
 	"testing"
 
 	"periph.io/x/periph/conn/gpio"
@@ -57,7 +58,7 @@ func TestLED_not_supported(t *testing.T) {
 	if pull := l.Pull(); pull != gpio.PullNoChange {
 		t.Fatal(pull)
 	}
-	if l.PWM(gpio.DutyHalf, physic.KiloHertz) == nil {
+	if l.PWM(context.Background(), gpio.DutyHalf, physic.KiloHertz) == nil {
 		t.Fatal("not supported")
 	}
 }

@@ -5,6 +5,7 @@
 package sysfs
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -192,7 +193,7 @@ func TestPin_Out(t *testing.T) {
 
 func TestPin_PWM(t *testing.T) {
 	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
-	if p.PWM(gpio.DutyHalf, physic.KiloHertz) == nil {
+	if p.PWM(context.Background(), gpio.DutyHalf, physic.KiloHertz) == nil {
 		t.Fatal("sysfs-gpio doesn't support PWM")
 	}
 }

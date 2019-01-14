@@ -5,6 +5,7 @@
 package mt7688
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -211,7 +212,7 @@ func (p *Pin) Out(l gpio.Level) error {
 // PWM implements gpio.PinOut.
 //
 // Not implemented yet.
-func (p *Pin) PWM(duty gpio.Duty, f physic.Frequency) error {
+func (p *Pin) PWM(ctx context.Context, duty gpio.Duty, f physic.Frequency) error {
 	return errors.New("not implemented")
 }
 

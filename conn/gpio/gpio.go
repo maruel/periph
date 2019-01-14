@@ -9,6 +9,7 @@
 package gpio
 
 import (
+	"context"
 	"errors"
 	"strconv"
 	"strings"
@@ -215,7 +216,7 @@ type PinOut interface {
 	//
 	// To use as a servo, see https://en.wikipedia.org/wiki/Servo_control as an
 	// explanation how to calculate duty.
-	PWM(duty Duty, f physic.Frequency) error
+	PWM(ctx context.Context, duty Duty, f physic.Frequency) error
 }
 
 // PinIO is a GPIO pin that supports both input and output. It matches both
@@ -232,7 +233,7 @@ type PinIO interface {
 	DefaultPull() Pull
 	// PinOut
 	Out(l Level) error
-	PWM(duty Duty, f physic.Frequency) error
+	PWM(ctx context.Context, duty Duty, f physic.Frequency) error
 }
 
 // INVALID implements PinIO and fails on all access.
@@ -315,7 +316,7 @@ func (invalidPin) Out(Level) error {
 	return errInvalidPin
 }
 
-func (invalidPin) PWM(Duty, physic.Frequency) error {
+func (invalidPin) PWM(context.Context, Duty, physic.Frequency) error {
 	return errInvalidPin
 }
 

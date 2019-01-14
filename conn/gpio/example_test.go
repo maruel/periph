@@ -5,8 +5,10 @@
 package gpio_test
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
@@ -96,8 +98,10 @@ func ExamplePinOut_pWM() {
 		log.Fatal("Failed to find GPIO6")
 	}
 
-	// Generate a 33% duty cycle 10KHz signal.
-	if err := p.PWM(gpio.DutyMax/3, 10*physic.KiloHertz); err != nil {
+	// Generate a 33% duty cycle 10KHz signal for one second.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := p.PWM(ctx, gpio.DutyMax/3, 10*physic.KiloHertz); err != nil {
 		log.Fatal(err)
 	}
 }

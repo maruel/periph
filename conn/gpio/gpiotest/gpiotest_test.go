@@ -5,6 +5,7 @@
 package gpiotest
 
 import (
+	"context"
 	"flag"
 	"io/ioutil"
 	"log"
@@ -68,7 +69,9 @@ func TestPin(t *testing.T) {
 	if err := p.Out(gpio.Low); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.PWM(gpio.DutyHalf, physic.KiloHertz); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := p.PWM(ctx, gpio.DutyHalf, physic.KiloHertz); err != nil {
 		t.Fatalf("unexpected failure: %v", err)
 	}
 }
@@ -127,7 +130,9 @@ func TestLogPinIO(t *testing.T) {
 	if v := l.Read(); v != gpio.High {
 		t.Fatalf("unexpected level %v", v)
 	}
-	if err := l.PWM(gpio.DutyHalf, physic.KiloHertz); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := l.PWM(ctx, gpio.DutyHalf, physic.KiloHertz); err != nil {
 		t.Fatalf("unexpected failure: %v", err)
 	}
 }
@@ -164,7 +169,9 @@ func TestByName(t *testing.T) {
 		t.Fatalf("expected alias, got: %T", p)
 	}
 	p = r.Real()
-	if err := p.PWM(gpio.DutyHalf, physic.KiloHertz); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := p.PWM(ctx, gpio.DutyHalf, physic.KiloHertz); err != nil {
 		t.Fatalf("unexpected failure: %v", err)
 	}
 }

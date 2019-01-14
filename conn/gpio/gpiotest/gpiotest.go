@@ -6,6 +6,7 @@
 package gpiotest
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -136,11 +137,12 @@ func (p *Pin) Out(l gpio.Level) error {
 }
 
 // PWM implements gpio.PinOut.
-func (p *Pin) PWM(duty gpio.Duty, f physic.Frequency) error {
+func (p *Pin) PWM(ctx context.Context, duty gpio.Duty, f physic.Frequency) error {
 	p.Lock()
 	defer p.Unlock()
 	p.D = duty
 	p.F = f
+	<-ctx.Done()
 	return nil
 }
 
@@ -182,9 +184,9 @@ func (p *LogPinIO) Out(l gpio.Level) error {
 }
 
 // PWM implements gpio.PinOut.
-func (p *LogPinIO) PWM(duty gpio.Duty, f physic.Frequency) error {
-	log.Printf("%s.PWM(%s, %s)", p, duty, f)
-	return p.PinIO.PWM(duty, f)
+func (p *LogPinIO) PWM(ctx context.Context, duty gpio.Duty, f physic.Frequency) error {
+	log.Printf("%s.PWM(%v, %s, %s)", p, ctx, duty, f)
+	return p.PinIO.PWM(ctx, duty, f)
 }
 
 var _ gpio.PinIO = &Pin{}

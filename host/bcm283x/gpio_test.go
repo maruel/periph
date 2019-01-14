@@ -5,6 +5,7 @@
 package bcm283x
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -262,12 +263,14 @@ func TestPinPWM(t *testing.T) {
 	}()
 	setMemory()
 	p := Pin{name: "C1", number: 4, defaultPull: gpio.PullDown}
-	if err := p.PWM(gpio.DutyHalf, 2*physic.MegaHertz); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := p.PWM(ctx, gpio.DutyHalf, 2*physic.MegaHertz); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
 		t.Fatal(err)
 	}
 
 	drvGPIO.gpioMemory = &gpioMap{}
-	if err := p.PWM(gpio.DutyHalf, 2*physic.MegaHertz); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
+	if err := p.PWM(ctx, gpio.DutyHalf, 2*physic.MegaHertz); err == nil || err.Error() != "bcm283x-gpio (C1): bcm283x-dma not initialized; try again as root?" {
 		t.Fatal(err)
 	}
 
@@ -275,11 +278,12 @@ func TestPinPWM(t *testing.T) {
 	drvDMA.pwmMemory = &pwmMap{}
 	drvDMA.pwmBaseFreq = 25 * physic.MegaHertz
 	drvDMA.pwmDMAFreq = 200 * physic.KiloHertz
-	if err := p.PWM(gpio.DutyHalf, 110*physic.KiloHertz); err == nil || err.Error() != "bcm283x-gpio (C1): frequency must be at most 100kHz" {
+	if err := p.PWM(ctx, gpio.DutyHalf, 110*physic.KiloHertz); err == nil || err.Error() != "bcm283x-gpio (C1): frequency must be at most 100kHz" {
 		t.Fatal(err)
 	}
 	drvDMA.dmaMemory = &dmaMap{}
-	if err := p.PWM(gpio.DutyHalf, 100*physic.KiloHertz); err != nil {
+	cancel()
+	if err := p.PWM(ctx, gpio.DutyHalf, 100*physic.KiloHertz); err != nil {
 		t.Fatal(err)
 	}
 }

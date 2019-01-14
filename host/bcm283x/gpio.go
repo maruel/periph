@@ -5,6 +5,7 @@
 package bcm283x
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -210,11 +211,6 @@ func (p *Pin) String() string {
 }
 
 // Halt implements conn.Resource.
-//
-// If the pin is running a clock, PWM or waiting for edges, it is halted.
-//
-// In the case of clock or PWM, all pins with this clock source are also
-// disabled.
 func (p *Pin) Halt() error {
 	if p.usingEdge {
 		if err := p.sysfsPin.Halt(); err != nil {
@@ -597,11 +593,7 @@ func (p *Pin) FastOut(l gpio.Level) {
 //
 // Furthermore, these can only be used if the drive "bcm283x-dma" was loaded.
 // It can only be loaded if the process has root level access.
-//
-// The user must call either Halt(), In(), Out(), PWM(0,..) or
-// PWM(gpio.DutyMax,..) to stop the clock source and DMA engine before exiting
-// the program.
-func (p *Pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
+func (p *Pin) PWM(ctx context.Context, duty gpio.Duty, freq physic.Frequency) error {
 	if duty == 0 {
 		return p.Out(gpio.Low)
 	} else if duty == gpio.DutyMax {
@@ -679,6 +671,10 @@ func (p *Pin) PWM(duty gpio.Duty, freq physic.Frequency) error {
 	}
 	p.usingClock = true
 	p.setFunction(f)
+
+	// BUG(maruel): Known to be broken.
+	<-ctx.Done()
+	p.haltClock()
 	return nil
 }
 
