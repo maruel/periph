@@ -7,6 +7,7 @@ package sysfs
 import (
 	"context"
 	"errors"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -218,6 +219,7 @@ func (e *eventsListener) loop() {
 			// Pipe and socket trigger epollIN and epollOUT, but GPIO sysfs triggers
 			// epollPRI.
 			if ep&(epollPRI|epollIN|epollOUT) != 0 {
+				log.Printf(" event fd %#x", ev.Fd)
 				lookups = append(lookups, lookup{c: c, event: ep})
 			}
 		}
@@ -250,6 +252,7 @@ func (e *eventsListener) loop() {
 //   ENOMEM: No memory available
 //   EPERM: fd is a regular file or directory
 func (e *eventsListener) addFd(fd uintptr, c chan<- time.Time, flags epollEvent) error {
+	log.Printf("addFd(%#x)", fd)
 	if c == nil {
 		return errors.New("fd: addFd requires a valid channel")
 	}
@@ -274,6 +277,7 @@ func (e *eventsListener) addFdInner(fd uintptr, flags epollEvent) error {
 
 // removeFd stop listening to events on this file descriptor.
 func (e *eventsListener) removeFd(fd uintptr) error {
+	log.Printf("removeFd(%#x)", fd)
 	if err := syscall.EpollCtl(e.epollFd, epollCTLDel, int(fd), nil); err != nil {
 		return err
 	}
