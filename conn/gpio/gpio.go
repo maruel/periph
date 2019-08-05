@@ -279,10 +279,6 @@ func (invalidPin) Name() string {
 	return "INVALID"
 }
 
-func (invalidPin) Function() string {
-	return ""
-}
-
 func (invalidPin) Func() pin.Func {
 	return pin.FuncNone
 }
@@ -326,4 +322,3 @@ func (invalidPin) PWM(Duty, physic.Frequency) error {
 var _ PinIn = INVALID
 var _ PinOut = INVALID
 var _ PinIO = INVALID
-var _ pin.PinFunc = &invalidPin{}

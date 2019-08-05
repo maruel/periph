@@ -70,10 +70,6 @@ func (invalidPin) String() string {
 	return "INVALID"
 }
 
-func (invalidPin) Function() string {
-	return ""
-}
-
 func (invalidPin) Func() pin.Func {
 	return pin.FuncNone
 }
@@ -104,4 +100,4 @@ func (invalidPin) Out(v int32) error {
 
 var _ PinADC = &INVALID
 var _ PinDAC = &INVALID
-var _ pin.PinFunc = &INVALID
+var _ pin.Pin = &INVALID

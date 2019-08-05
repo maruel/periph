@@ -34,17 +34,9 @@ func printFailures(state *periph.State) {
 }
 
 func altFuncs(p pin.Pin) string {
-	r, ok := p.(gpio.RealPin)
-	if ok {
-		p = r.Real()
-	}
-	alt, ok := p.(pin.PinFunc)
-	if !ok {
-		return ""
-	}
-	fn := alt.Func()
+	fn := p.Func()
 	out := ""
-	for _, f := range alt.SupportedFuncs() {
+	for _, f := range p.SupportedFuncs() {
 		if f == gpio.IN || f == gpio.OUT || f == fn {
 			continue
 		}
@@ -74,7 +66,7 @@ func printHardware(showFunctions bool, all map[string][][]pin.Pin) {
 				if l := len(p.String()); l > maxName {
 					maxName = l
 				}
-				if l := len(p.Function()); l > maxFn {
+				if l := len(p.Func()); l > maxFn {
 					maxFn = l
 				}
 				if showFunctions {
@@ -108,15 +100,15 @@ func printHardware(showFunctions bool, all map[string][][]pin.Pin) {
 					maxName, "Name", maxFn, "Func", maxAltFn, "Alt")
 				for i, line := range header {
 					fmt.Printf("  %*s  %*s  %*s  %3d  %-3d  %-*s  %-*s  %-*s\n",
-						maxAltFn, altFuncs(line[0]), maxFn, line[0].Function(), maxName, line[0], 2*i+1,
-						2*i+2, maxName, line[1], maxFn, line[1].Function(), maxAltFn, altFuncs(line[1]))
+						maxAltFn, altFuncs(line[0]), maxFn, line[0].Func(), maxName, line[0], 2*i+1,
+						2*i+2, maxName, line[1], maxFn, line[1].Func(), maxAltFn, altFuncs(line[1]))
 				}
 				continue
 			}
 			fmt.Printf("  %*s  %*s  Pos  Pos  %-*s  %-*s\n", maxFn, "Func", maxName, "Name", maxName, "Name", maxFn, "Func")
 			for i, line := range header {
 				fmt.Printf("  %*s  %*s  %3d  %-3d  %-*s  %-*s\n",
-					maxFn, line[0].Function(), maxName, line[0], 2*i+1, 2*i+2, maxName, line[1], maxFn, line[1].Function())
+					maxFn, line[0].Func(), maxName, line[0], 2*i+1, 2*i+2, maxName, line[1], maxFn, line[1].Func())
 			}
 			continue
 		}
@@ -127,7 +119,7 @@ func printHardware(showFunctions bool, all map[string][][]pin.Pin) {
 			pos := 1
 			for _, line := range header {
 				for _, item := range line {
-					fmt.Printf("  %-3d  %-*s  %-*s  %-*s\n", pos, maxName, item, maxFn, item.Function(), maxAltFn, altFuncs(item))
+					fmt.Printf("  %-3d  %-*s  %-*s  %-*s\n", pos, maxName, item, maxFn, item.Func(), maxAltFn, altFuncs(item))
 					pos++
 				}
 			}
@@ -136,7 +128,7 @@ func printHardware(showFunctions bool, all map[string][][]pin.Pin) {
 		pos := 1
 		for _, line := range header {
 			for _, item := range line {
-				fmt.Printf("  %-3d  %-*s  %s\n", pos, maxName, item, item.Function())
+				fmt.Printf("  %-3d  %-*s  %s\n", pos, maxName, item, item.Func())
 				pos++
 			}
 		}

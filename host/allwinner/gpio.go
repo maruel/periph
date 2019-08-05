@@ -99,12 +99,7 @@ func (p *Pin) Number() int {
 	return int(p.group)*32 + int(p.offset)
 }
 
-// Function implements pin.Pin.
-func (p *Pin) Function() string {
-	return string(p.Func())
-}
-
-// Func implements pin.PinFunc.
+// Func implements pin.Pin.
 func (p *Pin) Func() pin.Func {
 	if !p.available {
 		return pin.FuncNone
@@ -172,7 +167,7 @@ func (p *Pin) Func() pin.Func {
 	}
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements pin.Pin.
 func (p *Pin) SupportedFuncs() []pin.Func {
 	f := make([]pin.Func, 0, 2+4)
 	f = append(f, gpio.IN, gpio.OUT)
@@ -184,7 +179,7 @@ func (p *Pin) SupportedFuncs() []pin.Func {
 	return f
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements pin.Pin.
 func (p *Pin) SetFunc(f pin.Func) error {
 	switch f {
 	case gpio.FLOAT:
@@ -1062,4 +1057,3 @@ var drvGPIO driverGPIO
 var _ gpio.PinIO = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
-var _ pin.PinFunc = &Pin{}

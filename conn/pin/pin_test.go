@@ -28,9 +28,6 @@ func TestBasicPin(t *testing.T) {
 	if n := b.Number(); n != -1 {
 		t.Fatal(-1)
 	}
-	if s := b.Function(); s != "" {
-		t.Fatal(s)
-	}
 	if f := b.Func(); f != FuncNone {
 		t.Fatal(f)
 	}

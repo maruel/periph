@@ -179,9 +179,6 @@ func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
 
 // testFunc tests .Func(), .SetFunc().
 func (s *SmokeTest) testFunc(p *loggingPin) error {
-	if string(p.Func()) != p.Function() {
-		return fmt.Errorf("unexpected Func %q != Function %q", p.Func(), p.Function())
-	}
 	// This is dependent on testPWM() succeeding.
 	if p.Func() != gpio.IN_LOW {
 		return fmt.Errorf("expected %q, got %q", gpio.IN_LOW, p.Func())
@@ -295,7 +292,7 @@ func testAliases() error {
 }
 
 func printPin(p gpio.PinIO) {
-	fmt.Printf("- %s: %s", p, p.Function())
+	fmt.Printf("- %s: %s", p, p.Func())
 	if r, ok := p.(gpio.RealPin); ok {
 		fmt.Printf("  alias for %s", r.Real())
 	}

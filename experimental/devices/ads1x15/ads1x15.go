@@ -457,21 +457,17 @@ func (p *analogPin) Number() int {
 	return p.c.number()
 }
 
-func (p *analogPin) Function() string {
-	return string(p.Func())
-}
-
-// Func implements pin.PinFunc.
+// Func implements analog.PinADC.
 func (p *analogPin) Func() pin.Func {
 	return analog.ADC
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements analog.PinADC.
 func (p *analogPin) SupportedFuncs() []pin.Func {
 	return []pin.Func{analog.ADC}
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements analog.PinADC.
 func (p *analogPin) SetFunc(f pin.Func) error {
 	if f == analog.ADC {
 		return nil
@@ -498,4 +494,3 @@ func (p *analogPin) String() string {
 
 var _ analog.PinADC = &analogPin{}
 var _ pin.Pin = &analogPin{}
-var _ pin.PinFunc = &analogPin{}

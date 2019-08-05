@@ -188,8 +188,8 @@ func (s *SmokeTest) testBasic(p1, p2 gpio.PinIO) error {
 		return err
 	}
 	time.Sleep(s.shortDelay)
-	fmt.Printf("    %s -> %s: %s\n", since(s.start), p1, p1.Function())
-	fmt.Printf("    %s -> %s: %s\n", since(s.start), p2, p2.Function())
+	fmt.Printf("    %s -> %s: %s\n", since(s.start), p1, p1.Func())
+	fmt.Printf("    %s -> %s: %s\n", since(s.start), p2, p2.Func())
 	if l := p1.Read(); l != gpio.Low {
 		return fmt.Errorf("%s: expected to read %s but got %s", p1, gpio.Low, l)
 	}
@@ -199,8 +199,8 @@ func (s *SmokeTest) testBasic(p1, p2 gpio.PinIO) error {
 		return err
 	}
 	time.Sleep(s.shortDelay)
-	fmt.Printf("    %s -> %s: %s\n", since(s.start), p1, p1.Function())
-	fmt.Printf("    %s -> %s: %s\n", since(s.start), p2, p2.Function())
+	fmt.Printf("    %s -> %s: %s\n", since(s.start), p1, p1.Func())
+	fmt.Printf("    %s -> %s: %s\n", since(s.start), p2, p2.Func())
 	if l := p1.Read(); l != gpio.High {
 		return fmt.Errorf("%s: expected to read %s but got %s", p1, gpio.High, l)
 	}
@@ -513,7 +513,7 @@ func (s *SmokeTest) testPull(p1, p2 gpio.PinIO) error {
 		return err
 	}
 	time.Sleep(s.shortDelay)
-	fmt.Printf("    -> %s: %s\n    -> %s: %s\n", p1, p1.Function(), p2, p2.Function())
+	fmt.Printf("    -> %s: %s\n    -> %s: %s\n", p1, p1.Func(), p2, p2.Func())
 	if p1.Read() != gpio.Low {
 		return errors.New("read pull down failure")
 	}
@@ -523,7 +523,7 @@ func (s *SmokeTest) testPull(p1, p2 gpio.PinIO) error {
 		return err
 	}
 	time.Sleep(s.shortDelay)
-	fmt.Printf("    -> %s: %s\n    -> %s: %s\n", p1, p1.Function(), p2, p2.Function())
+	fmt.Printf("    -> %s: %s\n    -> %s: %s\n", p1, p1.Func(), p2, p2.Func())
 	if p1.Read() != gpio.High {
 		return errors.New("read pull up failure")
 	}
@@ -552,7 +552,7 @@ func (s *SmokeTest) testCycle(p1, p2 gpio.PinIO) error {
 //
 
 func printPin(p gpio.PinIO) {
-	fmt.Printf("- %s: %s", p, p.Function())
+	fmt.Printf("- %s: %s", p, p.Func())
 	if r, ok := p.(gpio.RealPin); ok {
 		fmt.Printf("  alias for %s", r.Real())
 	}

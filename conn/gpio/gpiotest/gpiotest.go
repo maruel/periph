@@ -57,22 +57,17 @@ func (p *Pin) Number() int {
 	return p.Num
 }
 
-// Function implements pin.Pin.
-func (p *Pin) Function() string {
-	return p.Fn
-}
-
-// Func implements pin.PinFunc.
+// Func implements pin.Pin.
 func (p *Pin) Func() pin.Func {
 	return pin.Func(p.Fn)
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements pin.Pin.
 func (p *Pin) SupportedFuncs() []pin.Func {
 	return []pin.Func{gpio.IN, gpio.OUT}
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements pin.Pin.
 func (p *Pin) SetFunc(f pin.Func) error {
 	return errors.New("gpiotest: not supported")
 }
@@ -193,4 +188,3 @@ func (p *LogPinIO) PWM(duty gpio.Duty, f physic.Frequency) error {
 }
 
 var _ gpio.PinIO = &Pin{}
-var _ pin.PinFunc = &Pin{}

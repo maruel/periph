@@ -35,9 +35,6 @@ func TestPinIn(t *testing.T) {
 	if n := p.Number(); n != -1 {
 		t.Fatal(n)
 	}
-	if s := p.Function(); s != "IN" {
-		t.Fatal(s)
-	}
 	if f := p.Func(); f != gpio.IN {
 		t.Fatal(f)
 	}
@@ -167,9 +164,6 @@ func TestPinOutPlayback(t *testing.T) {
 	if n := p.Number(); n != -1 {
 		t.Fatal(n)
 	}
-	if s := p.Function(); s != "OUT" {
-		t.Fatal(s)
-	}
 	if f := p.Func(); f != gpio.OUT {
 		t.Fatal(f)
 	}
@@ -233,9 +227,6 @@ func TestPinOutRecord(t *testing.T) {
 	}
 	if n := p.Number(); n != -1 {
 		t.Fatal(n)
-	}
-	if s := p.Function(); s != "OUT" {
-		t.Fatal(s)
 	}
 	if f := p.Func(); f != gpio.OUT {
 		t.Fatal(f)

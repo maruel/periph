@@ -114,12 +114,7 @@ func (p *Pin) Number() int {
 	return p.number
 }
 
-// Function implements pin.Pin.
-func (p *Pin) Function() string {
-	return string(p.Func())
-}
-
-// Func implements pin.PinFunc.
+// Func implements pin.Pin.
 func (p *Pin) Func() pin.Func {
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
@@ -159,14 +154,14 @@ func (p *Pin) Func() pin.Func {
 	}
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements pin.Pin.
 //
 // Not fully implemented yet.
 func (p *Pin) SupportedFuncs() []pin.Func {
 	return []pin.Func{gpio.IN, gpio.OUT}
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements pin.Pin.
 //
 // Not implemented yet.
 func (p *Pin) SetFunc(pin.Func) error {
@@ -227,4 +222,3 @@ func (p *Pin) function() function {
 }
 
 var _ gpio.PinIO = &Pin{}
-var _ pin.PinFunc = &Pin{}

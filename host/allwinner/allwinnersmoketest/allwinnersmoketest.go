@@ -86,7 +86,7 @@ func (s *SmokeTest) waitForEdge(p gpio.PinIO) <-chan bool {
 //
 
 func printPin(p gpio.PinIO) {
-	fmt.Printf("- %s: %s", p, p.Function())
+	fmt.Printf("- %s: %s", p, p.Func())
 	if r, ok := p.(gpio.RealPin); ok {
 		fmt.Printf("  alias for %s", r.Real())
 	}

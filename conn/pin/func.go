@@ -15,7 +15,7 @@ import (
 // "(In|Out)/(Low|High)".
 type Func string
 
-// FuncNone is returned by PinFunc.Func() for a Pin without an active
+// FuncNone is returned by Pin.Func() for a Pin without an active
 // functionality.
 const FuncNone Func = ""
 

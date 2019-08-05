@@ -76,12 +76,7 @@ func (p *PinPL) Number() int {
 	return 11*32 + int(p.offset)
 }
 
-// Function implements pin.Pin.
-func (p *PinPL) Function() string {
-	return string(p.Func())
-}
-
-// Func implements pin.PinFunc.
+// Func implements pin.Pin.
 func (p *PinPL) Func() pin.Func {
 	if !p.available {
 		// We do not want the error message about uninitialized system.
@@ -143,7 +138,7 @@ func (p *PinPL) Func() pin.Func {
 	}
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements pin.Pin.
 func (p *PinPL) SupportedFuncs() []pin.Func {
 	f := make([]pin.Func, 0, 2+2)
 	f = append(f, gpio.IN, gpio.OUT)
@@ -155,7 +150,7 @@ func (p *PinPL) SupportedFuncs() []pin.Func {
 	return f
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements pin.Pin.
 func (p *PinPL) SetFunc(f pin.Func) error {
 	switch f {
 	case gpio.FLOAT:
@@ -560,4 +555,3 @@ var drvGPIOPL driverGPIOPL
 var _ gpio.PinIO = &PinPL{}
 var _ gpio.PinIn = &PinPL{}
 var _ gpio.PinOut = &PinPL{}
-var _ pin.PinFunc = &PinPL{}

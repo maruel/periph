@@ -96,19 +96,16 @@ func TestPinADC(t *testing.T) {
 	if v := p.Number(); v != 5 {
 		t.Fatal(v)
 	}
-	if v := p.Function(); v != "ADC" {
+	if v := p.Func(); v != analog.ADC {
 		t.Fatal(v)
 	}
-	if v := p.(pin.PinFunc).Func(); v != analog.ADC {
+	if v := p.SupportedFuncs(); !reflect.DeepEqual(v, []pin.Func{analog.ADC}) {
 		t.Fatal(v)
 	}
-	if v := p.(pin.PinFunc).SupportedFuncs(); !reflect.DeepEqual(v, []pin.Func{analog.ADC}) {
-		t.Fatal(v)
-	}
-	if err := p.(pin.PinFunc).SetFunc(analog.ADC); err != nil {
+	if err := p.SetFunc(analog.ADC); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.(pin.PinFunc).SetFunc(pin.FuncNone); err == nil {
+	if err := p.SetFunc(pin.FuncNone); err == nil {
 		t.Fatal("expected failure")
 	}
 }

@@ -32,9 +32,6 @@ func TestNew(t *testing.T) {
 	if n := d.Number(); n != -1 {
 		t.Fatal(n)
 	}
-	if f := d.Function(); f != "ADC" {
-		t.Fatal(f)
-	}
 	if f := d.Func(); f != analog.ADC {
 		t.Fatal(f)
 	}

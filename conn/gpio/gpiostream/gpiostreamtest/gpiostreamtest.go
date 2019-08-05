@@ -64,22 +64,17 @@ func (p *PinIn) Number() int {
 	return -1
 }
 
-// Function implements pin.Pin.
-func (p *PinIn) Function() string {
-	return string(p.Func())
-}
-
-// Func implements pin.PinFunc.
+// Func implements pin.Pin.
 func (p *PinIn) Func() pin.Func {
 	return gpio.IN
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements pin.Pin.
 func (p *PinIn) SupportedFuncs() []pin.Func {
 	return []pin.Func{gpio.IN}
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements pin.Pin.
 func (p *PinIn) SetFunc(f pin.Func) error {
 	if f == gpio.IN {
 		return nil
@@ -159,22 +154,17 @@ func (p *PinOutPlayback) Number() int {
 	return -1
 }
 
-// Function implements pin.Pin.
-func (p *PinOutPlayback) Function() string {
-	return string(p.Func())
-}
-
-// Func implements pin.PinFunc.
+// Func implements pin.Pin.
 func (p *PinOutPlayback) Func() pin.Func {
 	return gpio.OUT
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements pin.Pin.
 func (p *PinOutPlayback) SupportedFuncs() []pin.Func {
 	return []pin.Func{gpio.OUT}
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements pin.Pin.
 func (p *PinOutPlayback) SetFunc(f pin.Func) error {
 	if f == gpio.OUT {
 		return nil
@@ -229,22 +219,17 @@ func (p *PinOutRecord) Number() int {
 	return -1
 }
 
-// Function implements pin.Pin.
-func (p *PinOutRecord) Function() string {
-	return string(p.Func())
-}
-
-// Func implements pin.PinFunc.
+// Func implements pin.Pin.
 func (p *PinOutRecord) Func() pin.Func {
 	return gpio.OUT
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements pin.Pin.
 func (p *PinOutRecord) SupportedFuncs() []pin.Func {
 	return []pin.Func{gpio.OUT}
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements pin.Pin.
 func (p *PinOutRecord) SetFunc(f pin.Func) error {
 	if f == gpio.OUT {
 		return nil

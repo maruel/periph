@@ -45,7 +45,7 @@ func ExampleAll() {
 
 	fmt.Print("GPIO pins available:\n")
 	for _, p := range gpioreg.All() {
-		fmt.Printf("- %s: %s\n", p, p.Function())
+		fmt.Printf("- %s: %s\n", p, p.Func())
 	}
 }
 
@@ -78,5 +78,5 @@ func ExampleByName_number() {
 	if p == nil {
 		log.Fatal("Failed to find GPIO6")
 	}
-	fmt.Printf("%s: %s\n", p, p.Function())
+	fmt.Printf("%s: %s\n", p, p.Func())
 }

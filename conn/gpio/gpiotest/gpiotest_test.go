@@ -36,10 +36,6 @@ func TestPin(t *testing.T) {
 	if n := p.Name(); n != "GPIO1" {
 		t.Fatal(n)
 	}
-	if f := p.Function(); f != "I2C1_SDA" {
-		t.Fatal(f)
-	}
-	// pin.PinFunc
 	if f := p.Func(); f != i2c.SDA.Specialize(1, -1) {
 		t.Fatal(f)
 	}

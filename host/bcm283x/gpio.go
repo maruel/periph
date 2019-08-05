@@ -237,12 +237,7 @@ func (p *Pin) Number() int {
 	return p.number
 }
 
-// Function implements pin.Pin.
-func (p *Pin) Function() string {
-	return string(p.Func())
-}
-
-// Func implements pin.PinFunc.
+// Func implements pin.Pin.
 func (p *Pin) Func() pin.Func {
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
@@ -296,7 +291,7 @@ func (p *Pin) Func() pin.Func {
 	}
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements pin.Pin.
 func (p *Pin) SupportedFuncs() []pin.Func {
 	f := make([]pin.Func, 0, 2+4)
 	f = append(f, gpio.IN, gpio.OUT)
@@ -308,7 +303,7 @@ func (p *Pin) SupportedFuncs() []pin.Func {
 	return f
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements pin.Pin.
 func (p *Pin) SetFunc(f pin.Func) error {
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
@@ -1440,4 +1435,3 @@ var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpiostream.PinIn = &Pin{}
 var _ gpiostream.PinOut = &Pin{}
-var _ pin.PinFunc = &Pin{}

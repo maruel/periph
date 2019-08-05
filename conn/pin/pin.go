@@ -36,19 +36,6 @@ type Pin interface {
 	// Number returns the logical pin number or a negative number if the pin is
 	// not a GPIO, e.g. GROUND, V3_3, etc.
 	Number() int
-	// Function returns a user readable string representation of what the pin is
-	// configured to do. Common case is In and Out but it can be bus specific pin
-	// name.
-	//
-	// Deprecated: Use PinFunc.Func. Will be removed in v4.
-	Function() string
-}
-
-// PinFunc is a supplementary interface that enables specifically querying for
-// the pin function.
-//
-// TODO(maruel): It will be merged into interface Pin for v4.
-type PinFunc interface {
 	// Func returns the pin's current function.
 	//
 	// The returned value may be specialized or generalized, depending on the
@@ -98,28 +85,21 @@ func (b *BasicPin) Number() int {
 	return -1
 }
 
-// Function implements Pin.
-//
-// Returns "" as pin function.
-func (b *BasicPin) Function() string {
-	return ""
-}
-
-// Func implements PinFunc.
+// Func implements Pin.
 //
 // Returns FuncNone as pin function.
 func (b *BasicPin) Func() Func {
 	return FuncNone
 }
 
-// SupportedFuncs implements PinFunc.
+// SupportedFuncs implements Pin.
 //
 // Returns nil.
 func (b *BasicPin) SupportedFuncs() []Func {
 	return nil
 }
 
-// SetFunc implements PinFunc.
+// SetFunc implements Pin.
 func (b *BasicPin) SetFunc(f Func) error {
 	return errors.New("pin: can't change static pin function")
 }
@@ -136,4 +116,3 @@ func init() {
 }
 
 var _ Pin = INVALID
-var _ PinFunc = INVALID

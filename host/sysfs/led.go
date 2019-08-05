@@ -76,12 +76,7 @@ func (l *LED) Number() int {
 	return l.number
 }
 
-// Function implements pin.Pin.
-func (l *LED) Function() string {
-	return string(l.Func())
-}
-
-// Func implements pin.PinFunc.
+// Func implements pin.Pin.
 func (l *LED) Func() pin.Func {
 	if l.Read() {
 		return "LED/On"
@@ -89,12 +84,12 @@ func (l *LED) Func() pin.Func {
 	return "LED/Off"
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements pin.Pin.
 func (l *LED) SupportedFuncs() []pin.Func {
 	return []pin.Func{"LED"}
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements pin.Pin.
 func (l *LED) SetFunc(f pin.Func) error {
 	return errors.New("sysfs-led: not implemented")
 }
@@ -254,4 +249,3 @@ var _ conn.Resource = &LED{}
 var _ gpio.PinIn = &LED{}
 var _ gpio.PinOut = &LED{}
 var _ gpio.PinIO = &LED{}
-var _ pin.PinFunc = &LED{}

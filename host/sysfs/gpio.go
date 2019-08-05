@@ -74,12 +74,7 @@ func (p *Pin) Number() int {
 	return p.number
 }
 
-// Function implements pin.Pin.
-func (p *Pin) Function() string {
-	return string(p.Func())
-}
-
-// Func implements pin.PinFunc.
+// Func implements pin.Pin.
 func (p *Pin) Func() pin.Func {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -110,12 +105,12 @@ func (p *Pin) Func() pin.Func {
 	return pin.FuncNone
 }
 
-// SupportedFuncs implements pin.PinFunc.
+// SupportedFuncs implements pin.Pin.
 func (p *Pin) SupportedFuncs() []pin.Func {
 	return []pin.Func{gpio.IN, gpio.OUT}
 }
 
-// SetFunc implements pin.PinFunc.
+// SetFunc implements pin.Pin.
 func (p *Pin) SetFunc(f pin.Func) error {
 	switch f {
 	case gpio.IN:
@@ -517,4 +512,3 @@ var _ conn.Resource = &Pin{}
 var _ gpio.PinIn = &Pin{}
 var _ gpio.PinOut = &Pin{}
 var _ gpio.PinIO = &Pin{}
-var _ pin.PinFunc = &Pin{}

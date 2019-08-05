@@ -62,11 +62,6 @@ func TestPin_NoMem(t *testing.T) {
 	if n := p.Number(); n != 42 {
 		t.Fatal(n)
 	}
-	if s := p.Function(); s != "" {
-		t.Fatal(s)
-	}
-
-	// pin.PinFunc
 	if s := p.Func(); s != pin.FuncNone {
 		t.Fatal(s)
 	}

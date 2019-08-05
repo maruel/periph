@@ -20,9 +20,6 @@ func TestINVALID(t *testing.T) {
 	if INVALID.String() != "INVALID" {
 		t.Fatal("String")
 	}
-	if INVALID.Function() != "" {
-		t.Fatal("Function")
-	}
 	if INVALID.Func() != pin.FuncNone {
 		t.Fatal("Func")
 	}

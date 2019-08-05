@@ -46,17 +46,9 @@ func printAliases(invalid bool) {
 }
 
 func altFuncs(p pin.Pin) string {
-	r, ok := p.(gpio.RealPin)
-	if ok {
-		p = r.Real()
-	}
-	alt, ok := p.(pin.PinFunc)
-	if !ok {
-		return ""
-	}
-	fn := alt.Func()
+	fn := p.Func()
 	out := ""
-	for _, f := range alt.SupportedFuncs() {
+	for _, f := range p.SupportedFuncs() {
 		if f == gpio.IN || f == gpio.OUT || f == fn {
 			continue
 		}
@@ -78,7 +70,7 @@ func printGPIO(invalid, showFunctions bool) {
 			if l := len(p.String()); l > maxName {
 				maxName = l
 			}
-			if l := len(p.Function()); l > maxFn {
+			if l := len(p.Func()); l > maxFn {
 				maxFn = l
 			}
 			if l := len(altFuncs(p)); l > maxAltFn {
@@ -91,7 +83,7 @@ func printGPIO(invalid, showFunctions bool) {
 		if !connected && !invalid {
 			continue
 		}
-		fmt.Printf("%-*s: %-*s", maxName, p, maxFn, p.Function())
+		fmt.Printf("%-*s: %-*s", maxName, p, maxFn, p.Func())
 		if showFunctions {
 			fmt.Printf("  %-*s", maxAltFn, altFuncs(p))
 		}

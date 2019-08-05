@@ -118,9 +118,6 @@ func TestInvalid(t *testing.T) {
 	if n := INVALID.Number(); n != -1 {
 		t.Fatal(n)
 	}
-	if s := INVALID.Function(); s != "" {
-		t.Fatal(s)
-	}
 	// gpio.PinIn
 	if err := INVALID.In(Float, NoEdge); err != errInvalidPin {
 		t.Fatal(err)
@@ -144,14 +141,13 @@ func TestInvalid(t *testing.T) {
 	if err := INVALID.PWM(DutyMax, physic.Hertz); err != errInvalidPin {
 		t.Fatal(err)
 	}
-	// pin.PinFunc
-	if f := INVALID.(pin.PinFunc).Func(); f != pin.FuncNone {
+	if f := INVALID.Func(); f != pin.FuncNone {
 		t.Fatal(f)
 	}
-	if f := INVALID.(pin.PinFunc).SupportedFuncs(); len(f) != 0 {
+	if f := INVALID.SupportedFuncs(); len(f) != 0 {
 		t.Fatal(f)
 	}
-	if err := INVALID.(pin.PinFunc).SetFunc(IN_LOW); err == nil {
+	if err := INVALID.SetFunc(IN_LOW); err == nil {
 		t.Fatal("can't set func")
 	}
 }

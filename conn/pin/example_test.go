@@ -51,18 +51,14 @@ func ExampleFunc_Generalize() {
 	// INVALID
 }
 
-func ExamplePinFunc() {
+func ExamplePin_Func() {
 	p := gpioreg.ByName("GPIO14")
 	if p == nil {
 		log.Fatal("not running on a raspberry pi")
 	}
-	pf, ok := p.(pin.PinFunc)
-	if !ok {
-		log.Fatal("pin.PinFunc is not implemented")
-	}
 	// Select UART1_TX.
 	f := uart.TX.Specialize(1, -1)
-	if err := pf.SetFunc(f); err != nil {
+	if err := p.SetFunc(f); err != nil {
 		log.Fatal(err)
 	}
 }

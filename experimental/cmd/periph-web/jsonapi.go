@@ -62,11 +62,11 @@ type gpioPin struct {
 	Name string
 	Num  int
 	// Mutable, the GPIO can change function over time.
-	Func string
+	Func pin.Func
 }
 
 func toPin(p pin.Pin) gpioPin {
-	return gpioPin{p.Name(), p.Number(), p.Function()}
+	return gpioPin{p.Name(), p.Number(), p.Func()}
 }
 
 // /api/periph/v1/gpio/aliases

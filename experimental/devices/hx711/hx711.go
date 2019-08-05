@@ -86,11 +86,6 @@ func (d *Dev) Number() int {
 	return -1
 }
 
-// Function implements analog.PinADC.
-func (d *Dev) Function() string {
-	return string(d.Func())
-}
-
 // Func implements analog.PinADC.
 func (d *Dev) Func() pin.Func {
 	return analog.ADC
