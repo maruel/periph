@@ -22,7 +22,7 @@ import (
 )
 
 // SkipAddr can be used to skip the address from being sent.
-const SkipAddr uint16 = 0xFFFF
+const SkipAddr i2c.Addr = 0xFFFF
 
 // New returns an object that communicates I²C over two pins.
 //
@@ -75,7 +75,7 @@ func (i *I2C) Close() error {
 }
 
 // Tx implements i2c.Bus.
-func (i *I2C) Tx(addr uint16, w, r []byte) error {
+func (i *I2C) Tx(addr i2c.Addr, w, r []byte) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	runtime.LockOSThread()

@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/experimental/devices/mcp9808"
 	"periph.io/x/periph/host"
@@ -22,7 +23,8 @@ func mainImpl() error {
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	address := flag.Int("address", 0x18, "I²C address")
+	address := i2c.Addr(0x18)
+	flag.Var(&address, "address", "I²C address")
 	i2cbus := flag.String("bus", "", "I²C bus (/dev/i2c-1)")
 
 	flag.Parse()
@@ -40,7 +42,7 @@ func mainImpl() error {
 	defer bus.Close()
 
 	// Create a new temperature sensor a sense with default options.
-	sensor, err := mcp9808.New(bus, &mcp9808.Opts{Addr: *address})
+	sensor, err := mcp9808.New(bus, &mcp9808.Opts{Addr: address})
 	if err != nil {
 		return fmt.Errorf("failed to open new sensor: %v", err)
 	}

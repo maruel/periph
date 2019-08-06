@@ -10,13 +10,15 @@ import (
 	"fmt"
 	"os"
 
+	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/experimental/devices/pca9548"
 	"periph.io/x/periph/host"
 )
 
 func mainImpl() error {
-	address := flag.Int("address", 0x70, "I²C address")
+	address := i2c.Addr(0x70)
+	flag.Var(&address, "address", "I²C address")
 	i2cbus := flag.String("bus", "", "I²C bus (/dev/i2c-1)")
 
 	flag.Parse()
@@ -34,7 +36,7 @@ func mainImpl() error {
 
 	// Creates a multiplexer with 8 ports at address 0x70 if no other address
 	// supplied with command line option.
-	mux, err := pca9548.New(bus, &pca9548.Opts{Addr: *address})
+	mux, err := pca9548.New(bus, &pca9548.Opts{Addr: address})
 	if err != nil {
 		return fmt.Errorf("failed to load new mux: %v", err)
 	}
@@ -45,7 +47,7 @@ func mainImpl() error {
 	}
 
 	// Create a place to store the results from the scan.
-	results := make(map[string][]uint16)
+	results := make(map[string][]i2c.Addr)
 	fmt.Println("Starting Scan")
 
 	// Loop through each bus scanning all addresses for a response.
@@ -57,7 +59,7 @@ func mainImpl() error {
 		}
 
 		rx := []byte{0x00}
-		for addr := uint16(1); addr < 0x77; addr++ {
+		for addr := i2c.Addr(1); addr < 0x77; addr++ {
 			if err := m.Tx(addr, nil, rx); err == nil {
 				results[m.String()] = append(results[m.String()], addr)
 			}

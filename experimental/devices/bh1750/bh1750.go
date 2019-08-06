@@ -13,10 +13,10 @@ import (
 )
 
 // I2CAddr i2c default address.
-const I2CAddr uint16 = 0x23
+const I2CAddr i2c.Addr = 0x23
 
 // AlternativeI2CAddr i2c alternative address.
-const AlternativeI2CAddr uint16 = 0x5c
+const AlternativeI2CAddr i2c.Addr = 0x5c
 
 // Resolution represents the measurements modes.
 type Resolution uint8
@@ -80,7 +80,7 @@ type Dev struct {
 // NewI2C opens a handle to an bh1750 sensor.
 //
 // To use on the default address, bh1750.I2CAddr must be passed as argument.
-func NewI2C(bus i2c.Bus, address uint16) (*Dev, error) {
+func NewI2C(bus i2c.Bus, address i2c.Addr) (*Dev, error) {
 	dev := &Dev{dev: i2c.Dev{Bus: bus, Addr: address}}
 
 	if err := dev.init(); err != nil {

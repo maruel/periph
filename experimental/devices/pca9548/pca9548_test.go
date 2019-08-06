@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/physic"
@@ -17,7 +18,7 @@ import (
 func TestNew(t *testing.T) {
 	tests := []struct {
 		tx      []i2ctest.IO
-		address int
+		address i2c.Addr
 		wantErr bool
 	}{
 		{
@@ -136,7 +137,7 @@ func TestDev_Halt(t *testing.T) {
 
 func TestDev_String(t *testing.T) {
 	tests := []struct {
-		address uint16
+		address i2c.Addr
 		want    string
 	}{
 		{address: 0x70, want: "pca9548-70"},
@@ -154,7 +155,7 @@ func TestDev_String(t *testing.T) {
 		}
 		host.Init()
 
-		mux, err := New(bus, &Opts{Addr: int(tt.address)})
+		mux, err := New(bus, &Opts{Addr: tt.address})
 		if err != nil {
 			t.Fatalf("failed to create I²C mux: %v", err)
 		}
@@ -170,7 +171,7 @@ func TestDev_Tx(t *testing.T) {
 		alias       string
 		openPort    string
 		initialPort int
-		address     uint16
+		address     i2c.Addr
 		tx          []i2ctest.IO
 		wantErr     bool
 	}{

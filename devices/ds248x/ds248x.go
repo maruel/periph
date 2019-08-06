@@ -56,7 +56,7 @@ var DefaultOpts = Opts{
 // access devices on the bus.
 //
 // Valid I²C addresses are 0x18, 0x19, 0x20 and 0x21.
-func New(i i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
+func New(i i2c.Bus, addr i2c.Addr, opts *Opts) (*Dev, error) {
 	switch addr {
 	case 0x18, 0x19, 0x20, 0x21:
 	default:

@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/i2c"
 )
 
 // SamplingTime determines the time to make a single sample.
@@ -82,7 +83,7 @@ type Opts struct {
 	// an I²C-device. Its default value is 0x28. It can be set to other values
 	// (0x29, 0x2a, 0x2b, 0x2c) depending on the HW configuration of the
 	// ADDR_COMM pin. Must not be set when used over SPI.
-	I2CAddr uint16
+	I2CAddr i2c.Addr
 	// LinkedLEDs indicates if the LEDs should be activated automatically
 	// when their sensors detect a touch event.
 	LinkedLEDs bool
@@ -130,7 +131,7 @@ type Opts struct {
 	CycleTime CycleTime
 }
 
-func (o *Opts) i2cAddr() (uint16, error) {
+func (o *Opts) i2cAddr() (i2c.Addr, error) {
 	switch o.I2CAddr {
 	case 0:
 		// Default address.

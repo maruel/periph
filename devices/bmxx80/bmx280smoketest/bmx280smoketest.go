@@ -39,7 +39,8 @@ func (s *SmokeTest) Description() string {
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	i2cID := f.String("i2c", "", "I²C bus to use")
-	i2cAddr := f.Uint("ia", 0x76, "I²C bus address to use; either 0x76 (BMx280, the default) or 0x77 (BMP180)")
+	i2cAddr := i2c.Addr(0x76)
+	f.Var(&i2cAddr, "ia", "I²C bus address to use; either 0x76 (BMx280, the default) or 0x77 (BMP180)")
 	spiID := f.String("spi", "", "SPI port to use")
 	record := f.Bool("r", false, "record operation (for playback unit testing)")
 	if err := f.Parse(args); err != nil {
@@ -70,12 +71,12 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 		}
 	}()
 	if !*record {
-		return run(i2cBus, uint16(*i2cAddr), spiPort)
+		return run(i2cBus, i2cAddr, spiPort)
 	}
 
 	i2cRecorder := i2ctest.Record{Bus: i2cBus}
 	spiRecorder := spitest.Record{Port: spiPort}
-	err = run(&i2cRecorder, uint16(*i2cAddr), &spiRecorder)
+	err = run(&i2cRecorder, i2cAddr, &spiRecorder)
 	if len(i2cRecorder.Ops) != 0 {
 		fmt.Printf("I²C recorder Addr: 0x%02X\n", i2cRecorder.Ops[0].Addr)
 	} else {
@@ -126,7 +127,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	return err
 }
 
-func run(i2cBus i2c.Bus, i2cAddr uint16, spiPort spi.PortCloser) (err error) {
+func run(i2cBus i2c.Bus, i2cAddr i2c.Addr, spiPort spi.PortCloser) (err error) {
 	opts := &bmxx80.Opts{
 		Temperature: bmxx80.O16x,
 		Pressure:    bmxx80.O16x,

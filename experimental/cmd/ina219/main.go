@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/experimental/devices/ina219"
 	"periph.io/x/periph/host"
@@ -22,7 +23,8 @@ func mainImpl() error {
 	if _, err := host.Init(); err != nil {
 		return err
 	}
-	address := flag.Int("address", 0x40, "I²C address")
+	address := i2c.Addr(0x40)
+	flag.Var(&address, "address", "I²C address")
 	i2cbus := flag.String("bus", "", "I²C bus (/dev/i2c-1)")
 
 	flag.Parse()
@@ -41,7 +43,7 @@ func mainImpl() error {
 
 	// Create a new power sensor a sense with default options of 100 mΩ, 3.2A at
 	// address of 0x40 if no other address supplied with command line option.
-	sensor, err := ina219.New(bus, &ina219.Opts{Address: *address})
+	sensor, err := ina219.New(bus, &ina219.Opts{Address: address})
 	if err != nil {
 		return fmt.Errorf("failed to open new sensor: %v", err)
 	}

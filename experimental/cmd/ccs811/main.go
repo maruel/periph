@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/physic"
 
 	"periph.io/x/periph/conn/i2c/i2creg"
@@ -21,7 +22,8 @@ import (
 
 func main() {
 	i2cID := flag.String("i2c", "", "I²C bus to use (default, uses the first I²C found)")
-	i2cAddr := flag.Uint("ia", 0x5A, "I²C bus address to use; either 0x5A (90, default) or 0x5B (91)")
+	i2cAddr := i2c.Addr(0x5A)
+	flag.Var(&i2cAddr, "ia", "I²C bus address to use; either 0x5A (90, default) or 0x5B (91)")
 	status := flag.Bool("status", false, "command displays status register of sensor")
 	rawData := flag.Bool("rawdata", false, "command displays current and voltage of sensors measurement resistor")
 	baseline := flag.Bool("baseline", false, "command displays value used for correction of measurement")
@@ -65,7 +67,7 @@ func main() {
 	}
 	defer b.Close()
 
-	d, err := ccs811.New(b, &ccs811.Opts{Addr: uint16(*i2cAddr), MeasurementMode: ccs811.MeasurementModeConstant1000})
+	d, err := ccs811.New(b, &ccs811.Opts{Addr: i2cAddr, MeasurementMode: ccs811.MeasurementModeConstant1000})
 	if err != nil {
 		log.Fatalf("Device creation failed: %v", err)
 	}

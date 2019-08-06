@@ -17,7 +17,7 @@ import (
 
 // IO registers the I/O that happened on either a real or fake I²C bus.
 type IO struct {
-	Addr uint16
+	Addr i2c.Addr
 	W    []byte
 	R    []byte
 }
@@ -38,7 +38,7 @@ func (r *Record) String() string {
 }
 
 // Tx implements i2c.Bus
-func (r *Record) Tx(addr uint16, w, read []byte) error {
+func (r *Record) Tx(addr i2c.Addr, w, read []byte) error {
 	io := IO{Addr: addr}
 	if len(w) != 0 {
 		io.W = make([]byte, len(w))
@@ -120,7 +120,7 @@ func (p *Playback) Close() error {
 }
 
 // Tx implements i2c.Bus.
-func (p *Playback) Tx(addr uint16, w, r []byte) error {
+func (p *Playback) Tx(addr i2c.Addr, w, r []byte) error {
 	p.Lock()
 	defer p.Unlock()
 	if len(p.Ops) <= p.Count {

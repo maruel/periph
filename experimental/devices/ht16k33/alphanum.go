@@ -114,7 +114,7 @@ type Display struct {
 // NewAlphaNumericDisplay returns a Display object that communicates over I2C to ht16k33.
 //
 // To use on the default address, ht16k33.I2CAddr must be passed as argument.
-func NewAlphaNumericDisplay(bus i2c.Bus, address uint16) (*Display, error) {
+func NewAlphaNumericDisplay(bus i2c.Bus, address i2c.Addr) (*Display, error) {
 	dev, err := NewI2C(bus, address)
 	if err != nil {
 		return nil, err

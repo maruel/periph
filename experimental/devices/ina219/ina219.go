@@ -23,7 +23,7 @@ import (
 // address. Default configuration is address 0x40 (both pins to GND). For a full
 // address table see datasheet.
 type Opts struct {
-	Address       int
+	Address       i2c.Addr
 	SenseResistor physic.ElectricResistance
 	MaxCurrent    physic.ElectricCurrent
 }
@@ -64,7 +64,7 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 
 	dev := &Dev{
 		m: mmr.Dev8{
-			Conn:  &i2c.Dev{Bus: bus, Addr: uint16(i2cAddress)},
+			Conn:  &i2c.Dev{Bus: bus, Addr: i2cAddress},
 			Order: binary.BigEndian,
 		},
 	}

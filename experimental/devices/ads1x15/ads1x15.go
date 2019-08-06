@@ -19,7 +19,7 @@ import (
 )
 
 // I2CAddr is the default I2C address for the ADS1x15 components.
-const I2CAddr uint16 = 0x48
+const I2CAddr i2c.Addr = 0x48
 
 // Channel is the analog reading to do. It can be either an absolute reading or
 // a differential reading between two pins.
@@ -101,7 +101,7 @@ const (
 
 // Opts holds the configuration options.
 type Opts struct {
-	I2cAddress uint16
+	I2cAddress i2c.Addr
 }
 
 // DefaultOpts are the recommended default options.

@@ -78,7 +78,8 @@ func run(dev environment.SenseWeather, interval time.Duration) error {
 
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use (default, uses the first I²C found)")
-	i2cAddr := flag.Uint("ia", 0x76, "I²C bus address to use; either 0x76 (BMx280, the default) or 0x77 (BMP180)")
+	i2cAddr := i2c.Addr(0x76)
+	flag.Var(&i2cAddr, "ia", "I²C bus address to use; either 0x76 (BMx280, the default) or 0x77 (BMP180)")
 	spiID := flag.String("spi", "", "SPI port to use")
 	var hz physic.Frequency
 	flag.Var(&hz, "hz", "I²C bus/SPI port speed")
@@ -177,7 +178,7 @@ func mainImpl() error {
 				return err
 			}
 		}
-		if dev, err = bmxx80.NewI2C(i, uint16(*i2cAddr), &opts); err != nil {
+		if dev, err = bmxx80.NewI2C(i, i2cAddr, &opts); err != nil {
 			return err
 		}
 	}

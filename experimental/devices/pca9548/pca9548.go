@@ -23,14 +23,14 @@ type Opts struct {
 	// Addr is the pca9548 I²C Address. Valid addresses for the NXP pca9548 are
 	// 0x70 to 0x77. The address is set by pulling A0~A2 low or high. Please
 	// refer to the datasheet.
-	Addr int
+	Addr i2c.Addr
 }
 
 // Dev is handle to a pca9548 I²C Multiplexer.
 type Dev struct {
 	// Immutable.
 	c        i2c.Bus
-	address  uint16
+	address  i2c.Addr
 	name     string
 	numPorts uint8
 
@@ -47,12 +47,12 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 	d := &Dev{
 		c:          bus,
 		activePort: 0xFF,
-		address:    uint16(opts.Addr),
+		address:    opts.Addr,
 		numPorts:   8,
 		name:       "pca9548-" + strconv.FormatUint(uint64(opts.Addr), 16),
 	}
 	r := make([]byte, 1)
-	err := bus.Tx(uint16(opts.Addr), nil, r)
+	err := bus.Tx(opts.Addr, nil, r)
 	if err != nil {
 		return nil, errors.New("could not establish communicate with multiplexer: " + err.Error())
 	}
@@ -90,7 +90,7 @@ func (d *Dev) String() string {
 
 // tx wraps the master bus tx, maintains which port that each bus is registered
 // on so that communication from the master is always on the right port.
-func (d *Dev) tx(port uint8, address uint16, w, r []byte) error {
+func (d *Dev) tx(port uint8, address i2c.Addr, w, r []byte) error {
 	if address == d.address {
 		return errors.New("device address conflicts with multiplexer address")
 	}
@@ -137,7 +137,7 @@ func (p *port) SetSpeed(f physic.Frequency) error {
 }
 
 // Tx does a transaction on the multiplexer port it is register to.
-func (p *port) Tx(addr uint16, w, r []byte) error {
+func (p *port) Tx(addr i2c.Addr, w, r []byte) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.mux == nil {

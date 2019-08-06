@@ -26,7 +26,7 @@ import (
 // slave address. Default configuration is address 0x18 (Ax pins to GND). For a
 // full address table see datasheet.
 type Opts struct {
-	Addr int
+	Addr i2c.Addr
 	Res  resolution
 }
 
@@ -48,7 +48,7 @@ func New(bus i2c.Bus, opts *Opts) (*Dev, error) {
 
 	dev := &Dev{
 		m: mmr.Dev8{
-			Conn:  &i2c.Dev{Bus: bus, Addr: uint16(i2cAddress)},
+			Conn:  &i2c.Dev{Bus: bus, Addr: i2cAddress},
 			Order: binary.BigEndian,
 		},
 		stop:    make(chan struct{}, 1),

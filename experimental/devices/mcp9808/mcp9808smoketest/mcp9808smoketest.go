@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 
+	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/experimental/devices/mcp9808"
 	"periph.io/x/periph/host"
@@ -32,7 +33,8 @@ func (s *SmokeTest) Description() string {
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	i2cID := f.String("i2c", "", "I²C bus to use")
-	i2cAddr := f.Int("ia", 0x18, "I²C bus address use: 0x18 to 0x1f")
+	i2cAddr := i2c.Addr(0x18)
+	f.Var(&i2cAddr, "ia", "I²C bus address use: 0x18 to 0x1f")
 	if err := f.Parse(args); err != nil {
 		return err
 	}
@@ -59,7 +61,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 
 	// Create a new temperature sensor a with maximum resolution.
 	config := mcp9808.Opts{
-		Addr: *i2cAddr,
+		Addr: i2cAddr,
 		Res:  mcp9808.Maximum,
 	}
 

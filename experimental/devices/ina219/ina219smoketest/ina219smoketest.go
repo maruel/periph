@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 
+	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/experimental/devices/ina219"
@@ -33,7 +34,8 @@ func (s *SmokeTest) Description() string {
 // Run implements the SmokeTest interface.
 func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 	i2cID := f.String("i2c", "", "I²C bus to use")
-	i2cAddr := f.Int("ia", 0x40, "I²C bus address use: 0x40 to 0x4f")
+	i2cAddr := i2c.Addr(0x40)
+	f.Var(&i2cAddr, "ia", "I²C bus address use: 0x40 to 0x4f")
 	if err := f.Parse(args); err != nil {
 		return err
 	}
@@ -60,7 +62,7 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) (err error) {
 
 	// Create a new power sensor a sense resistor of 100 mΩ.
 	config := &ina219.Opts{
-		Address:       *i2cAddr,
+		Address:       i2cAddr,
 		SenseResistor: 100 * physic.MilliOhm,
 		MaxCurrent:    3200 * physic.MilliAmpere,
 	}

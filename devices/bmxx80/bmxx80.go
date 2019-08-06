@@ -167,7 +167,7 @@ func (o *Opts) delayTypical280() time.Duration {
 //
 // It is recommended to call Halt() when done with the device so it stops
 // sampling.
-func NewI2C(b i2c.Bus, addr uint16, opts *Opts) (*Dev, error) {
+func NewI2C(b i2c.Bus, addr i2c.Addr, opts *Opts) (*Dev, error) {
 	switch addr {
 	case 0x76, 0x77:
 	default:

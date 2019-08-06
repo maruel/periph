@@ -41,7 +41,7 @@ type Bus interface {
 	//
 	// Write is done first, then read. One of 'w' or 'r' can be omitted for a
 	// unidirectional operation.
-	Tx(addr uint16, w, r []byte) error
+	Tx(addr Addr, w, r []byte) error
 	// SetSpeed changes the bus speed, if supported.
 	//
 	// On linux due to the way the I²C sysfs driver is exposed in userland,
@@ -77,7 +77,7 @@ type Pins interface {
 // It saves from repeatedly specifying the device address.
 type Dev struct {
 	Bus  Bus
-	Addr uint16
+	Addr Addr
 }
 
 func (d *Dev) String() string {

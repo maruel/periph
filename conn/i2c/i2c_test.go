@@ -80,7 +80,7 @@ func TestDevWriteErr(t *testing.T) {
 type fakeBus struct {
 	freq physic.Frequency
 	err  error
-	addr uint16
+	addr Addr
 	w, r []byte
 }
 
@@ -92,7 +92,7 @@ func (f *fakeBus) String() string {
 	return "fake"
 }
 
-func (f *fakeBus) Tx(addr uint16, w, r []byte) error {
+func (f *fakeBus) Tx(addr Addr, w, r []byte) error {
 	f.addr = addr
 	f.w = append(f.w, w...)
 	copy(r, f.r)

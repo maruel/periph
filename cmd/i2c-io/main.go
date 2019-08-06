@@ -20,7 +20,8 @@ import (
 )
 
 func mainImpl() error {
-	addr := flag.Int("a", -1, "I²C device address to query")
+	addr := i2c.Addr(0xFFFF)
+	flag.Var(&addr, "a", "I²C device address to query")
 	busName := flag.String("b", "", "I²C bus to use")
 	verbose := flag.Bool("v", false, "verbose mode")
 	// TODO(maruel): This is not generic enough.
@@ -38,7 +39,7 @@ func mainImpl() error {
 		return errors.New("unexpected argument, try -help")
 	}
 
-	if *addr < 0 || *addr >= 1<<9 {
+	if addr < 0 || addr >= 1<<9 {
 		return fmt.Errorf("-a is required and must be between 0 and %d", 1<<9-1)
 	}
 	if *reg < 0 || *reg > 255 {
@@ -89,7 +90,7 @@ func mainImpl() error {
 			log.Printf("Using pins SCL: %s  SDA: %s", p.SCL(), p.SDA())
 		}
 	}
-	d := i2c.Dev{Bus: bus, Addr: uint16(*addr)}
+	d := i2c.Dev{Bus: bus, Addr: addr}
 	if *write {
 		_, err = d.Write(buf)
 	} else {

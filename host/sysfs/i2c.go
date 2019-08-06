@@ -89,7 +89,7 @@ func (i *I2C) String() string {
 }
 
 // Tx execute a transaction as a single operation unit.
-func (i *I2C) Tx(addr uint16, w, r []byte) error {
+func (i *I2C) Tx(addr i2c.Addr, w, r []byte) error {
 	if addr >= 0x400 || (addr >= 0x80 && i.fn&func10BitAddr == 0) {
 		return errors.New("sysfs-i2c: invalid address")
 	}
@@ -102,14 +102,14 @@ func (i *I2C) Tx(addr uint16, w, r []byte) error {
 	msgs := buf[0:0]
 	if len(w) != 0 {
 		msgs = buf[:1]
-		buf[0].addr = addr
+		buf[0].addr = uint16(addr)
 		buf[0].length = uint16(len(w))
 		buf[0].buf = uintptr(unsafe.Pointer(&w[0]))
 	}
 	if len(r) != 0 {
 		l := len(msgs)
 		msgs = msgs[:l+1] // extend the slice by one
-		buf[l].addr = addr
+		buf[l].addr = uint16(addr)
 		buf[l].flags = flagRD
 		buf[l].length = uint16(len(r))
 		buf[l].buf = uintptr(unsafe.Pointer(&r[0]))

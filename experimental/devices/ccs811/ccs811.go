@@ -91,7 +91,7 @@ func (d *Dev) errorCodeToError(errorCode SensorErrorID) error {
 
 // Opts holds the configuration options. The address must be 0x5A or 0x5B.
 type Opts struct {
-	Addr               uint16
+	Addr               i2c.Addr
 	MeasurementMode    MeasurementMode
 	InterruptWhenReady bool
 	UseThreshold       bool

@@ -14,7 +14,7 @@ import (
 )
 
 // I2CAddr i2c default address.
-const I2CAddr uint16 = 0x40
+const I2CAddr i2c.Addr = 0x40
 
 // PCA9685 registers.
 const (
@@ -49,7 +49,7 @@ type Dev struct {
 // NewI2C returns a Dev object that communicates over I2C.
 //
 // To use on the default address, pca9685.I2CAddr must be passed as argument.
-func NewI2C(bus i2c.Bus, address uint16) (*Dev, error) {
+func NewI2C(bus i2c.Bus, address i2c.Addr) (*Dev, error) {
 	dev := &Dev{
 		dev: &i2c.Dev{Bus: bus, Addr: address},
 	}

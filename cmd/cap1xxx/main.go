@@ -27,7 +27,8 @@ import (
 
 func mainImpl() error {
 	i2cID := flag.String("i2c", "", "I²C bus to use")
-	i2cAddr := flag.Uint("ia", 0x29, "I²C bus address to use, Pimoroni's Drum Hat is 0x2c")
+	i2cAddr := i2c.Addr(0x29)
+	flag.Var(&i2cAddr, "ia", "I²C bus address to use, Pimoroni's Drum Hat is 0x2c")
 	var hz physic.Frequency
 	flag.Var(&hz, "hz", "I²C bus/SPI port speed")
 	verbose := flag.Bool("v", false, "verbose mode")
@@ -40,11 +41,11 @@ func mainImpl() error {
 	log.SetFlags(log.Lmicroseconds)
 
 	opts := cap1xxx.DefaultOpts
-	if *i2cAddr != 0 {
-		if *i2cAddr > 65535 {
+	if i2cAddr != 0 {
+		if i2cAddr > 65535 {
 			return errors.New("invlaid -i2c value")
 		}
-		opts.I2CAddr = uint16(*i2cAddr)
+		opts.I2CAddr = i2cAddr
 	}
 
 	if _, err := host.Init(); err != nil {
