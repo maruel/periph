@@ -138,7 +138,7 @@ func (s *SmokeTest) testPWMbyDMA(p1, p2 *loggingPin) error {
 		return err
 	}
 
-	return p1.Halt()
+	return nil
 }
 
 // testPWM tests .PWM() for a PWM pin.
@@ -178,9 +178,6 @@ func (s *SmokeTest) testPWM(p1, p2 *loggingPin) error {
 		return err
 	}
 
-	if err := p1.Halt(); err != nil {
-		return err
-	}
 	return p1.Out(gpio.Low)
 }
 
@@ -199,18 +196,13 @@ func (s *SmokeTest) testFunc(p *loggingPin) error {
 	if err := p.SetFunc(gpio.CLK.Specialize(-1, 2)); err != nil {
 		return fmt.Errorf("failed to set %q", gpio.CLK.Specialize(-1, 2))
 	}
-	return p.Halt()
+	return nil
 }
 
 // testStreamIn tests gpiostream.StreamIn and gpio.PWM.
 func (s *SmokeTest) testStreamIn(p1, p2 *loggingPin) (err error) {
 	const freq = 5 * physic.KiloHertz
 	fmt.Printf("- Testing StreamIn\n")
-	defer func() {
-		if err2 := p2.Halt(); err == nil {
-			err = err2
-		}
-	}()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	cancel()
 	// BUG(maruel): Known to be broken.

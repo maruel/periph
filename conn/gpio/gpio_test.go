@@ -108,9 +108,6 @@ func TestInvalid(t *testing.T) {
 	if s := INVALID.String(); s != "INVALID" {
 		t.Fatal(s)
 	}
-	if err := INVALID.Halt(); err != nil {
-		t.Fatal(err)
-	}
 	// pin.Pin
 	if s := INVALID.Name(); s != "INVALID" {
 		t.Fatal(s)

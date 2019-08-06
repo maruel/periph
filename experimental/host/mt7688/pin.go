@@ -97,11 +97,6 @@ func (p Pin) String() string {
 	return p.name
 }
 
-// Halt implements conn.Resource.
-func (*Pin) Halt() error {
-	return nil
-}
-
 // Name implements pin.Pin.
 func (p *Pin) Name() string {
 	return p.name

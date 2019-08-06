@@ -24,10 +24,6 @@ func (f *fakeSensor) String() string {
 	return "fake"
 }
 
-func (f *fakeSensor) Halt() error {
-	return nil
-}
-
 func (f *fakeSensor) SenseWeather(w *environment.Weather) error {
 	w.Temperature = physic.ZeroCelsius + 23*physic.Celsius
 	w.Pressure = 101200 * physic.Pascal

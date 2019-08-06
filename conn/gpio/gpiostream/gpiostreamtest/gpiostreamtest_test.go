@@ -44,9 +44,6 @@ func TestPinIn(t *testing.T) {
 	if err := p.SetFunc(gpio.IN); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.Halt(); err != nil {
-		t.Fatal(err)
-	}
 	if err := p.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -173,9 +170,6 @@ func TestPinOutPlayback(t *testing.T) {
 	if err := p.SetFunc(gpio.OUT); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.Halt(); err != nil {
-		t.Fatal(err)
-	}
 	if err := p.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -235,9 +229,6 @@ func TestPinOutRecord(t *testing.T) {
 		t.Fatal(v)
 	}
 	if err := p.SetFunc(gpio.OUT); err != nil {
-		t.Fatal(err)
-	}
-	if err := p.Halt(); err != nil {
 		t.Fatal(err)
 	}
 }

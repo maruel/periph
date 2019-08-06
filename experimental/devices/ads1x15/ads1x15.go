@@ -165,11 +165,6 @@ func (d *Dev) String() string {
 	return d.name
 }
 
-// Halt implements conn.Resource.
-func (d *Dev) Halt() error {
-	return nil
-}
-
 // PinForChannel returns an AnalogPin for the requested channel at the
 // requested frequency.
 //

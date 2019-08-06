@@ -118,12 +118,6 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("cap1xxx{%s}", d.c.Conn)
 }
 
-// Halt is a noop for the cap1xxx.
-func (d *Dev) Halt() error {
-	// TODO(maruel): Turn off the LEDs?
-	return nil
-}
-
 // InputStatus reads and returns the status of the inputs.
 //
 // The slice t will have the sensed inputs updated upon successful read. If the

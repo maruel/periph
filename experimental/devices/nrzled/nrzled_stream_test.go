@@ -49,9 +49,6 @@ func TestStream_NewBits_3(t *testing.T) {
 	if r := d.Bounds(); r != image.Rect(0, 0, 10, 1) {
 		t.Fatal(r)
 	}
-	if err = d.Halt(); err != nil {
-		t.Fatal(err)
-	}
 	if err = g.Close(); err != nil {
 		t.Fatal(err)
 	}

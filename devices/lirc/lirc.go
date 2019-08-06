@@ -50,13 +50,6 @@ func (c *Conn) String() string {
 	return "lirc"
 }
 
-// Halt implements conn.Resource.
-//
-// It has no effect.
-func (c *Conn) Halt() error {
-	return nil
-}
-
 // Close closes the socket to lirc. It is not a requirement to close before
 // process termination.
 func (c *Conn) Close() error {

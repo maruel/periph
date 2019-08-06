@@ -21,11 +21,6 @@ func (d *Drawer) String() string {
 	return "Drawer"
 }
 
-// Halt implements conn.Resource. It is a noop.
-func (d *Drawer) Halt() error {
-	return nil
-}
-
 // ColorModel implements image.Image.
 func (d *Drawer) ColorModel() color.Model {
 	return d.Img.ColorModel()

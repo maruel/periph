@@ -28,7 +28,6 @@ func ExampleDebounce() {
 		log.Fatal(err)
 	}
 
-	defer d.Halt()
 	for {
 		if d.WaitForEdge(-1) {
 			fmt.Println(d.Read())
@@ -47,7 +46,6 @@ func ExamplePollEdge() {
 		log.Fatal(err)
 	}
 
-	defer p.Halt()
 	for {
 		if p.WaitForEdge(-1) {
 			fmt.Println(p.Read())
@@ -82,7 +80,6 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	defer d.Halt()
 	for {
 		if d.WaitForEdge(-1) {
 			fmt.Println(d.Read())

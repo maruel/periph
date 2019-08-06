@@ -98,11 +98,6 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("DS2482-100{%s}", d.i2c)
 }
 
-// Halt implements conn.Resource.
-func (d *Dev) Halt() error {
-	return nil
-}
-
 // Tx performs a bus transaction, sending and receiving bytes, and ending by
 // pulling the bus high either weakly or strongly depending on the value of
 // power.

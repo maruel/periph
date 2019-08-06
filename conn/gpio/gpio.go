@@ -264,10 +264,6 @@ func (invalidPin) String() string {
 	return "INVALID"
 }
 
-func (invalidPin) Halt() error {
-	return nil
-}
-
 func (invalidPin) Number() int {
 	return -1
 }

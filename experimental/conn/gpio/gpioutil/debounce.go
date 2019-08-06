@@ -71,11 +71,6 @@ func (d *debounced) Edges(ctx context.Context, edge gpio.Edge, c chan<- gpio.Edg
 	d.PinIO.WaitForEdge(ctx, edge, c)
 }
 
-// Halt implements gpio.PinIO.
-func (d *debounced) Halt() error {
-	return nil
-}
-
 // Real implements gpio.RealPin.
 func (d *debounced) Real() gpio.PinIO {
 	if r, ok := d.PinIO.(gpio.RealPin); ok {

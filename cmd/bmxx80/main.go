@@ -183,11 +183,7 @@ func mainImpl() error {
 		}
 	}
 	log.Printf("Found %s", dev)
-	err := run(dev, *interval)
-	if err2 := dev.Halt(); err == nil {
-		err = err2
-	}
-	return err
+	return run(dev, *interval)
 }
 
 func main() {

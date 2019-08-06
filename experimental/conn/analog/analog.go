@@ -82,10 +82,6 @@ func (invalidPin) SetFunc(f pin.Func) error {
 	return errInvalidPin
 }
 
-func (invalidPin) Halt() error {
-	return errInvalidPin
-}
-
 func (invalidPin) Range() (Sample, Sample) {
 	return Sample{}, Sample{}
 }

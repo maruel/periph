@@ -29,9 +29,6 @@ func TestINVALID(t *testing.T) {
 	if err := INVALID.SetFunc(pin.FuncNone); err == nil {
 		t.Fatal("SetFunc")
 	}
-	if INVALID.Halt() == nil {
-		t.Fatal("Halt")
-	}
 	INVALID.Range()
 	if _, err := INVALID.Read(); err == nil {
 		t.Fatal("Read")

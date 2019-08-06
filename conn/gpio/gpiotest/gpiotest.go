@@ -40,13 +40,6 @@ func (p *Pin) String() string {
 	return fmt.Sprintf("%s(%d)", p.N, p.Num)
 }
 
-// Halt implements conn.Resource.
-//
-// It has no effect.
-func (p *Pin) Halt() error {
-	return nil
-}
-
 // Name implements pin.Pin.
 func (p *Pin) Name() string {
 	return p.N

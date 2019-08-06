@@ -56,15 +56,6 @@ func (p *Pin) String() string {
 	return p.name
 }
 
-// Halt implements conn.Resource.
-//
-// It stops edge detection if enabled.
-func (p *Pin) Halt() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.haltEdge()
-}
-
 // Name implements pin.Pin.
 func (p *Pin) Name() string {
 	return p.name

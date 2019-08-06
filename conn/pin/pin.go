@@ -68,11 +68,6 @@ func (b *BasicPin) String() string {
 	return b.N
 }
 
-// Halt implements conn.Resource.
-func (b *BasicPin) Halt() error {
-	return nil
-}
-
 // Name implements Pin.
 func (b *BasicPin) Name() string {
 	return b.N

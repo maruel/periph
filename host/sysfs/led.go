@@ -59,13 +59,6 @@ func (l *LED) String() string {
 	return fmt.Sprintf("%s(%d)", l.name, l.number)
 }
 
-// Halt implements conn.Resource.
-//
-// It turns the light off.
-func (l *LED) Halt() error {
-	return l.Out(gpio.Low)
-}
-
 // Name implements pin.Pin.
 func (l *LED) Name() string {
 	return l.name

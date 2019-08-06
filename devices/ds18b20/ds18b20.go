@@ -87,11 +87,6 @@ func (d *Dev) String() string {
 	return "DS18B20{" + d.onewire.String() + "}"
 }
 
-// Halt implements conn.Resource.
-func (d *Dev) Halt() error {
-	return nil
-}
-
 // SenseWeather implements environment.SenseWeather.
 func (d *Dev) SenseWeather(w *environment.Weather) error {
 	if err := d.onewire.TxPower([]byte{0x44}, nil); err != nil {

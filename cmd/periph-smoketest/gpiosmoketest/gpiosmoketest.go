@@ -331,11 +331,13 @@ func (s *SmokeTest) testWaitForEdge(p1, p2 gpio.PinIO) (err error) {
 
 	// Halt() unblocks a WaitForEdge()
 	now := time.Now()
-	t := time.AfterFunc(short, func() {
-		if err2 := p1.Halt(); err == nil {
-			err = err2
-		}
-	})
+	/*
+		t := time.AfterFunc(short, func() {
+			if err2 := p1.Halt(); err == nil {
+				err = err2
+			}
+		})
+	*/
 	if p1.WaitForEdge(timeout) {
 		t.Stop()
 		return fmt.Errorf("unexpected edge; waited for %s", time.Since(now))
@@ -601,11 +603,6 @@ func since(start time.Time) string {
 type loggingPin struct {
 	gpio.PinIO
 	start time.Time
-}
-
-func (p *loggingPin) Halt() error {
-	fmt.Printf("    %s %s.Halt()\n", since(p.start), p)
-	return p.PinIO.Halt()
 }
 
 func (p *loggingPin) In(pull gpio.Pull, edge gpio.Edge) error {

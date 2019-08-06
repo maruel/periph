@@ -61,9 +61,6 @@ type Pin struct {
 	sysfsPin    *sysfs.Pin  // Set to the corresponding sysfs.Pin, if any.
 	available   bool        // Set when the pin is available on this CPU architecture.
 	supportEdge bool        // Set when the pin supports interrupt based edge detection.
-
-	// Mutable.
-	usingEdge bool // Set when edge detection is enabled.
 }
 
 // String implements conn.Resource.
@@ -71,19 +68,6 @@ type Pin struct {
 // It returns the pin name and number, ex: "PB5(37)".
 func (p *Pin) String() string {
 	return fmt.Sprintf("%s(%d)", p.name, p.Number())
-}
-
-// Halt implements conn.Resource.
-//
-// It stops edge detection if enabled.
-func (p *Pin) Halt() error {
-	if p.usingEdge {
-		if err := p.sysfsPin.Halt(); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = false
-	}
-	return nil
 }
 
 // Name implements pin.Pin.
@@ -199,9 +183,7 @@ func (p *Pin) SetFunc(f pin.Func) error {
 		isGeneral := f == f.Generalize()
 		for i, m := range p.altFunc {
 			if m == f || (isGeneral && m.Generalize() == f) {
-				if err := p.Halt(); err != nil {
-					return err
-				}
+				// Halt
 				switch i {
 				case 0:
 					p.setFunction(alt1)
@@ -235,12 +217,6 @@ func (p *Pin) In(pull gpio.Pull) error {
 	if !p.available {
 		// We do not want the error message about uninitialized system.
 		return p.wrap(errors.New("not available on this CPU architecture"))
-	}
-	if p.usingEdge {
-		if err := p.sysfsPin.Halt(); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = false
 	}
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
@@ -297,13 +273,11 @@ func (p *Pin) FastRead() gpio.Level {
 // Edges implements gpio.PinIn.
 func (p *Pin) Edges(ctx context.Context, edge gpio.Edge, c chan<- gpio.EdgeSample) {
 	if !p.supportEdge {
-		c <- gpio.EdgeSample{T: time.NoW(), Err: p.wrap(errors.New("edge detection is not supported on this pin"))}
+		c <- gpio.EdgeSample{T: time.Now(), Err: p.wrap(errors.New("edge detection is not supported on this pin"))}
 		return
 	}
 	if p.sysfsPin != nil {
-		p.usingEdge = true
 		p.sysfsPin.Edges(ctx, edge, c)
-		p.usingEdge = false
 	} else {
 		c <- gpio.EdgeSample{T: time.Now(), Err: p.wrap(fmt.Errorf("pin %d is not exported by sysfs", p.Number()))}
 	}
@@ -346,9 +320,7 @@ func (p *Pin) Out(l gpio.Level) error {
 		return p.sysfsPin.Out(l)
 	}
 	// First disable edges.
-	if err := p.Halt(); err != nil {
-		return err
-	}
+	// Halt
 	p.FastOut(l)
 	p.setFunction(out)
 	return nil

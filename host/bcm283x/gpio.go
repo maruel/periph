@@ -210,17 +210,6 @@ func (p *Pin) String() string {
 	return p.name
 }
 
-// Halt implements conn.Resource.
-func (p *Pin) Halt() error {
-	if p.usingEdge {
-		if err := p.sysfsPin.Halt(); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = false
-	}
-	return p.haltClock()
-}
-
 // Name implements pin.Pin.
 func (p *Pin) Name() string {
 	return p.name
@@ -324,9 +313,7 @@ func (p *Pin) SetFunc(f pin.Func) error {
 		isGeneral := f == f.Generalize()
 		for i, m := range mapping[p.number] {
 			if m == f || (isGeneral && m.Generalize() == f) {
-				if err := p.Halt(); err != nil {
-					return err
-				}
+				// Halt
 				switch i {
 				case 0:
 					p.setFunction(alt0)
@@ -361,13 +348,6 @@ func (p *Pin) SetFunc(f pin.Func) error {
 //
 // Will fail if requesting to change a pin that is set to special functionality.
 func (p *Pin) In(pull gpio.Pull) error {
-	/*
-		if p.usingEdge && edge == gpio.NoEdge {
-			if err := p.sysfsPin.Halt(); err != nil {
-				return p.wrap(err)
-			}
-		}
-	*/
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
 			return p.wrap(errors.New("subsystem gpiomem not initialized and sysfs not accessible"))
@@ -546,9 +526,7 @@ func (p *Pin) Out(l gpio.Level) error {
 		return p.sysfsPin.Out(l)
 	}
 	// TODO(maruel): This function call is very costly.
-	if err := p.Halt(); err != nil {
-		return err
-	}
+	// Halt
 	// Change output before changing mode to not create any glitch.
 	p.FastOut(l)
 	p.setFunction(out)

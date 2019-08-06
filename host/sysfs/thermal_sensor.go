@@ -58,11 +58,6 @@ func (t *ThermalSensor) String() string {
 	return t.name
 }
 
-// Halt does nothing.
-func (t *ThermalSensor) Halt() error {
-	return nil
-}
-
 // Type returns the type of sensor as exported by sysfs.
 func (t *ThermalSensor) Type() string {
 	t.mu.Lock()

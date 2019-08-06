@@ -48,9 +48,7 @@ func TestThermalSensor_Sense_fail(t *testing.T) {
 	if s := d.String(); s != "cpu" {
 		t.Fatal(s)
 	}
-	if err := d.Halt(); err != nil {
-		t.Fatal(err)
-	}
+	// Halt
 	if s := d.Type(); s != "sysfs-thermal: file I/O is inhibited" {
 		t.Fatal(s)
 	}

@@ -197,11 +197,6 @@ func (d *Dev) String() string {
 	return "Inky pHAT"
 }
 
-// Halt implements conn.Resource
-func (d *Dev) Halt() error {
-	return nil
-}
-
 // ColorModel implements display.Drawer
 // Maps white to white, black to black and anything else as red. Red is used as
 // a placeholder for the display's third color, i.e., red or yellow.

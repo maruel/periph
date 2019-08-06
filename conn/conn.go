@@ -11,13 +11,6 @@ type Resource interface {
 	// String returns a human readable identifier representing this resource in a
 	// descriptive way for the user. It is the same signature as fmt.Stringer.
 	String() string
-	// Halt stops the resource.
-	//
-	// Unlike a Conn, a Resource may not be closable, On the other hand, a
-	// resource can be halted. What halting entails depends on the resource
-	// device but it should stop motion, sensing loop, light emission or PWM
-	// output and go back into an inert state.
-	Halt() error
 }
 
 // Duplex declares whether communication can happen simultaneously both ways.

@@ -512,6 +512,7 @@ var offsetDrawTests = []struct {
 	},
 }
 
+/*
 func TestSPI_Halt(t *testing.T) {
 	s := spitest.Playback{
 		Playback: conntest.Playback{
@@ -556,6 +557,7 @@ func TestSPI_Halt_fail(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+*/
 
 type genColor func(int) [3]byte
 

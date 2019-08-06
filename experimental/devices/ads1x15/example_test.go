@@ -38,7 +38,6 @@ func Example() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer pin.Halt()
 
 	// Read values from ADC.
 	fmt.Println("Single reading")

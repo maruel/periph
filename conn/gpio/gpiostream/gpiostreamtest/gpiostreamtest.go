@@ -82,11 +82,6 @@ func (p *PinIn) SetFunc(f pin.Func) error {
 	return errorf(p.DontPanic, "gpiostreamtest: not supported")
 }
 
-// Halt implements conn.Resource.
-func (p *PinIn) Halt() error {
-	return nil
-}
-
 // StreamIn implements gpiostream.PinIn.
 func (p *PinIn) StreamIn(pull gpio.Pull, b gpiostream.Stream) error {
 	s, ok := b.(*gpiostream.BitStream)
@@ -172,11 +167,6 @@ func (p *PinOutPlayback) SetFunc(f pin.Func) error {
 	return errorf(p.DontPanic, "gpiostreamtest: not supported")
 }
 
-// Halt implements conn.Resource.
-func (p *PinOutPlayback) Halt() error {
-	return nil
-}
-
 // StreamOut implements gpiostream.PinOut.
 func (p *PinOutPlayback) StreamOut(s gpiostream.Stream) error {
 	p.Lock()
@@ -235,11 +225,6 @@ func (p *PinOutRecord) SetFunc(f pin.Func) error {
 		return nil
 	}
 	return errorf(p.DontPanic, "gpiostreamtest: not supported")
-}
-
-// Halt implements conn.Resource.
-func (p *PinOutRecord) Halt() error {
-	return nil
 }
 
 // StreamOut implements gpiostream.PinOut.

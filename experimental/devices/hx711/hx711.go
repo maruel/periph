@@ -11,6 +11,7 @@
 package hx711
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -48,7 +49,6 @@ type Dev struct {
 	// Mutable.
 	mu        sync.Mutex
 	inputMode InputMode
-	done      chan struct{}
 }
 
 // New creates a new HX711 device.
@@ -67,7 +67,6 @@ func New(clk gpio.PinOut, data gpio.PinIn) (*Dev, error) {
 		inputMode: CHANNEL_A_GAIN_128,
 		clk:       clk,
 		data:      data,
-		done:      nil,
 	}, nil
 }
 
@@ -128,24 +127,15 @@ func (d *Dev) Read() (analog.Sample, error) {
 
 // ReadContinuous starts reading values continuously from the ADC. It
 // returns a channel that you can use to receive these values.
-//
-// You must call Halt to stop reading.
-//
-// Calling ReadContinuous again before Halt is an error,
-// and nil will be returned.
-func (d *Dev) ReadContinuous() <-chan analog.Sample {
+func (d *Dev) ReadContinuous(ctx context.Context) <-chan analog.Sample {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.done != nil {
-		return nil
-	}
-	done := make(chan struct{})
 	ret := make(chan analog.Sample)
 
 	go func() {
 		for {
 			select {
-			case <-done:
+			case <-ctx.Done():
 				close(ret)
 				return
 			default:
@@ -157,21 +147,7 @@ func (d *Dev) ReadContinuous() <-chan analog.Sample {
 		}
 	}()
 
-	d.done = done
 	return ret
-}
-
-// Halt stops a continuous read that was started with ReadContinuous.
-//
-// This will close the channel that was returned by ReadContinuous.
-func (d *Dev) Halt() error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if d.done != nil {
-		close(d.done)
-		d.done = nil
-	}
-	return nil
 }
 
 // IsReady returns true if there is data ready to be read from the ADC.

@@ -165,17 +165,5 @@ func (d *Dev) Halt() error {
 		return err
 	}
 
-	if err := d.ledB.Halt(); err != nil {
-		return err
-	}
-
-	if err := d.buttonA.Halt(); err != nil {
-		return err
-	}
-
-	if err := d.buttonB.Halt(); err != nil {
-		return err
-	}
-
-	return d.buttonC.Halt()
+	return d.ledB.Halt()
 }

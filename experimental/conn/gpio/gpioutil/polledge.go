@@ -90,18 +90,6 @@ func (p *pollEdge) WaitForEdge(timeout time.Duration) bool {
 	}
 }
 
-// Halt implements gpio.PinIO.
-//
-// It unblocks any WaitForEdge loop.
-func (p *pollEdge) Halt() error {
-	select {
-	// If a WaitForEdge was pending, it will be unblocked.
-	case p.die <- struct{}{}:
-	default:
-	}
-	return nil
-}
-
 // Real implements gpio.RealPin.
 func (p *pollEdge) Real() gpio.PinIO {
 	if r, ok := p.PinIO.(gpio.RealPin); ok {

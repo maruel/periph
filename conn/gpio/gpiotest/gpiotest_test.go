@@ -26,9 +26,6 @@ func TestPin(t *testing.T) {
 	if s := p.String(); s != "GPIO1(10)" {
 		t.Fatal(s)
 	}
-	if err := p.Halt(); err != nil {
-		t.Fatal(err)
-	}
 	// pin.Pin
 	if n := p.Number(); n != 10 {
 		t.Fatal(n)

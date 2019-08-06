@@ -33,6 +33,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
+/*
 func TestHalt(t *testing.T) {
 	bus := setup()
 	dev, _ := New(bus)
@@ -48,6 +49,7 @@ func TestHalt(t *testing.T) {
 		t.Fatal("I2C write different than expected (reset)")
 	}
 }
+*/
 
 func TestWakeUp(t *testing.T) {
 	bus := setup()

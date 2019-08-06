@@ -50,19 +50,6 @@ func (p *PinPL) String() string {
 	return fmt.Sprintf("%s(%d)", p.name, p.Number())
 }
 
-// Halt implements conn.Resource.
-//
-// It stops edge detection if enabled.
-func (p *PinPL) Halt() error {
-	if p.usingEdge {
-		if err := p.sysfsPin.Halt(); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = false
-	}
-	return nil
-}
-
 // Name implements pin.Pin.
 //
 // It returns the pin name, ex: "PL5".
@@ -170,9 +157,7 @@ func (p *PinPL) SetFunc(f pin.Func) error {
 		isGeneral := f == f.Generalize()
 		for i, m := range mappingPL[p.offset] {
 			if m == f || (isGeneral && m.Generalize() == f) {
-				if err := p.Halt(); err != nil {
-					return err
-				}
+				// Halt
 				switch i {
 				case 0:
 					p.setFunction(alt1)
@@ -199,9 +184,7 @@ func (p *PinPL) In(pull gpio.Pull) error {
 		return p.wrap(errors.New("not available on this CPU architecture"))
 	}
 	if p.usingEdge {
-		if err := p.sysfsPin.Halt(); err != nil {
-			return p.wrap(err)
-		}
+		// Halt
 		p.usingEdge = false
 	}
 	if drvGPIOPL.gpioMemoryPL == nil {
@@ -299,9 +282,7 @@ func (p *PinPL) Out(l gpio.Level) error {
 		return p.sysfsPin.Out(l)
 	}
 	// First disable edges.
-	if err := p.Halt(); err != nil {
-		return err
-	}
+	// Halt
 	p.FastOut(l)
 	if !p.setFunction(out) {
 		return p.wrap(errors.New("failed to set pin as output"))

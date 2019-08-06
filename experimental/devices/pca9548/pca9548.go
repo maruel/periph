@@ -78,11 +78,6 @@ func (d *Dev) RegisterPorts(alias string) ([]string, error) {
 	return portNames, nil
 }
 
-// Halt does nothing.
-func (d *Dev) Halt() error {
-	return nil
-}
-
 // String returns the bus base name for multiplexer ports.
 func (d *Dev) String() string {
 	return d.name

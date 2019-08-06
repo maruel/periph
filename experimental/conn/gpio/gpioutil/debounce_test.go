@@ -42,9 +42,6 @@ func TestDebounce_In(t *testing.T) {
 	if err := p.In(gpio.PullNoChange, gpio.BothEdges); err != nil {
 		t.Fatal(err)
 	}
-	if p.Halt() != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestDebounce_Read_Low(t *testing.T) {

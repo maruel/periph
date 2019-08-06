@@ -19,9 +19,6 @@ func TestBasicPin(t *testing.T) {
 	if s := b.String(); s != "Pin1" {
 		t.Fatal(s)
 	}
-	if err := b.Halt(); err != nil {
-		t.Fatal(err)
-	}
 	if s := b.Name(); s != "Pin1" {
 		t.Fatal(s)
 	}
