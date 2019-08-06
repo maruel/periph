@@ -132,7 +132,7 @@ func ExampleDistance_float64() {
 	// 15133858268in
 }
 
-func ExampleElectricalCapacitance() {
+func ExampleElectricCapacitance() {
 	fmt.Println(1 * physic.Farad)
 	fmt.Println(22 * physic.PicoFarad)
 	// Output:
@@ -140,8 +140,8 @@ func ExampleElectricalCapacitance() {
 	// 22pF
 }
 
-func ExampleElectricalCapacitance_Set() {
-	var c physic.ElectricalCapacitance
+func ExampleElectricCapacitance_Set() {
+	var c physic.ElectricCapacitance
 
 	if err := c.Set("1F"); err != nil {
 		log.Fatal(err)
@@ -157,14 +157,14 @@ func ExampleElectricalCapacitance_Set() {
 	// 22pF
 }
 
-func ExampleElectricalCapacitance_flag() {
-	var c physic.ElectricalCapacitance
+func ExampleElectricCapacitance_flag() {
+	var c physic.ElectricCapacitance
 
 	flag.Var(&c, "mintouch", "minimum touch sensitivity")
 	flag.Parse()
 }
 
-func ExampleElectricalCapacitance_float64() {
+func ExampleElectricCapacitance_float64() {
 	// A typical condensator.
 	v := 4700 * physic.NanoFarad
 

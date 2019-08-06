@@ -3226,10 +3226,10 @@ func TestEnergy_RoundTrip(t *testing.T) {
 	}
 }
 
-func TestElectricalCapacitance_Set(t *testing.T) {
+func TestElectricCapacitance_Set(t *testing.T) {
 	succeeds := []struct {
 		in       string
-		expected ElectricalCapacitance
+		expected ElectricCapacitance
 	}{
 		{"1pF", 1 * PicoFarad},
 		{"10pF", 10 * PicoFarad},
@@ -3341,31 +3341,31 @@ func TestElectricalCapacitance_Set(t *testing.T) {
 	}
 
 	for i, tt := range succeeds {
-		var got ElectricalCapacitance
+		var got ElectricCapacitance
 		if err := got.Set(tt.in); err != nil {
-			t.Errorf("#%d: ElectricalCapacitance.Set(%s) got unexpected error: %v", i, tt.in, err)
+			t.Errorf("#%d: ElectricCapacitance.Set(%s) got unexpected error: %v", i, tt.in, err)
 		}
 		if got != tt.expected {
-			t.Errorf("#%d: ElectricalCapacitance.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
+			t.Errorf("#%d: ElectricCapacitance.Set(%s) expected: %v(%d) but got: %v(%d)", i, tt.in, tt.expected, tt.expected, got, got)
 		}
 	}
 
 	for i, tt := range fails {
-		var got ElectricalCapacitance
+		var got ElectricCapacitance
 		if err := got.Set(tt.in); err == nil || err.Error() != tt.err {
-			t.Errorf("#%d: ElectricalCapacitance.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
+			t.Errorf("#%d: ElectricCapacitance.Set(%s) \nexpected: %s\ngot:      %s", i, tt.in, tt.err, err)
 		}
 	}
 }
 
-func TestElectricalCapacitance_RoundTrip(t *testing.T) {
+func TestElectricCapacitance_RoundTrip(t *testing.T) {
 	x := 123 * Farad
-	var y ElectricalCapacitance
+	var y ElectricCapacitance
 	if err := y.Set(x.String()); err != nil {
-		t.Fatalf("ElectricalCapacitance.Set(stringer) failed: %v", err)
+		t.Fatalf("ElectricCapacitance.Set(stringer) failed: %v", err)
 	}
 	if x != y {
-		t.Fatalf("ElectricalCapacitance expected %s to equal %s", x, y)
+		t.Fatalf("ElectricCapacitance expected %s to equal %s", x, y)
 	}
 }
 

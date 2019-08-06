@@ -1403,20 +1403,20 @@ const (
 	minEnergy = -9223372036854775807 * NanoJoule
 )
 
-// ElectricalCapacitance is a measurement of capacitance stored as a pico farad.
+// ElectricCapacitance is a measurement of capacitance stored as a pico farad.
 //
 // The highest representable value is 9.2MF.
-type ElectricalCapacitance int64
+type ElectricCapacitance int64
 
 // String returns the energy formatted as a string in Farad.
-func (c ElectricalCapacitance) String() string {
+func (c ElectricCapacitance) String() string {
 	return picoAsString(int64(c)) + "F"
 }
 
-// Set sets the ElectricalCapacitance to the value represented by s. Units are
+// Set sets the ElectricCapacitance to the value represented by s. Units are
 // to be provided in "F" with an optional SI prefix: "p", "n", "u", "µ", "m",
 // "k", "M", "G" or "T".
-func (c *ElectricalCapacitance) Set(s string) error {
+func (c *ElectricCapacitance) Set(s string) error {
 	v, n, err := valueOfUnitString(s, pico)
 	if err != nil {
 		if e, ok := err.(*parseError); ok {
@@ -1427,9 +1427,9 @@ func (c *ElectricalCapacitance) Set(s string) error {
 				}
 				return notNumberUnitErr("F")
 			case errOverflowsInt64:
-				return maxValueErr(maxElectricalCapacitance.String())
+				return maxValueErr(maxElectricCapacitance.String())
 			case errOverflowsInt64Negative:
-				return minValueErr(minElectricalCapacitance.String())
+				return minValueErr(minElectricCapacitance.String())
 			}
 		}
 		return err
@@ -1437,7 +1437,7 @@ func (c *ElectricalCapacitance) Set(s string) error {
 
 	switch s[n:] {
 	case "F", "f":
-		*c = (ElectricalCapacitance)(v)
+		*c = (ElectricCapacitance)(v)
 	case "":
 		return noUnitErr("F")
 	default:
@@ -1450,19 +1450,19 @@ func (c *ElectricalCapacitance) Set(s string) error {
 	return nil
 }
 
-// Well known ElectricalCapacitance constants.
+// Well known ElectricCapacitance constants.
 const (
 	// Farad is a unit of capacitance. kg⁻¹⋅m⁻²⋅s⁴A²
-	PicoFarad  ElectricalCapacitance = 1
-	NanoFarad  ElectricalCapacitance = 1000 * PicoFarad
-	MicroFarad ElectricalCapacitance = 1000 * NanoFarad
-	MilliFarad ElectricalCapacitance = 1000 * MicroFarad
-	Farad      ElectricalCapacitance = 1000 * MilliFarad
-	KiloFarad  ElectricalCapacitance = 1000 * Farad
-	MegaFarad  ElectricalCapacitance = 1000 * KiloFarad
+	PicoFarad  ElectricCapacitance = 1
+	NanoFarad  ElectricCapacitance = 1000 * PicoFarad
+	MicroFarad ElectricCapacitance = 1000 * NanoFarad
+	MilliFarad ElectricCapacitance = 1000 * MicroFarad
+	Farad      ElectricCapacitance = 1000 * MilliFarad
+	KiloFarad  ElectricCapacitance = 1000 * Farad
+	MegaFarad  ElectricCapacitance = 1000 * KiloFarad
 
-	maxElectricalCapacitance = 9223372036854775807 * PicoFarad
-	minElectricalCapacitance = -9223372036854775807 * PicoFarad
+	maxElectricCapacitance = 9223372036854775807 * PicoFarad
+	minElectricCapacitance = -9223372036854775807 * PicoFarad
 )
 
 // LuminousIntensity is a measurement of the quantity of visible light energy
