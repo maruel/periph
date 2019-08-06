@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"log"
 
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/i2c/i2creg"
-	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/devices/bmxx80"
 	"periph.io/x/periph/host"
 )
@@ -31,9 +31,9 @@ func Example() {
 	if err != nil {
 		log.Fatalf("failed to initialize bme280: %v", err)
 	}
-	e := physic.Env{}
-	if err := d.Sense(&e); err != nil {
+	w := environment.Weather{}
+	if err := d.SenseWeather(&w); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%8s %10s %9s\n", e.Temperature, e.Pressure, e.Humidity)
+	fmt.Printf("%8s %10s %9s\n", w.Temperature, w.Pressure, w.Humidity)
 }

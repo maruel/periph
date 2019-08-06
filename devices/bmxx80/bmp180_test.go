@@ -5,9 +5,11 @@
 package bmxx80
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/physic"
 )
@@ -70,7 +72,7 @@ func TestNew180_bad_calib(t *testing.T) {
 	}
 }
 
-func TestSense180_success(t *testing.T) {
+func TestSenseWeather180_success(t *testing.T) {
 	values := []struct {
 		o Oversampling
 		c byte
@@ -110,18 +112,18 @@ func TestSense180_success(t *testing.T) {
 		if s := dev.String(); s != "BMP180{playback(119)}" {
 			t.Fatal(s)
 		}
-		e := physic.Env{}
-		if err := dev.Sense(&e); err != nil {
+		w := environment.Weather{}
+		if err := dev.SenseWeather(&w); err != nil {
 			t.Fatal(err)
 		}
-		if e.Temperature != 25300*physic.MilliCelsius+physic.ZeroCelsius {
-			t.Fatalf("temp %d", e.Temperature)
+		if w.Temperature != 25300*physic.MilliCelsius+physic.ZeroCelsius {
+			t.Fatalf("temp %d", w.Temperature)
 		}
-		if e.Pressure != line.p {
-			t.Fatalf("pressure %d", e.Pressure)
+		if w.Pressure != line.p {
+			t.Fatalf("pressure %d", w.Pressure)
 		}
-		if e.Humidity != 0 {
-			t.Fatalf("humidity %d", e.Humidity)
+		if w.Humidity != 0 {
+			t.Fatalf("humidity %d", w.Humidity)
 		}
 		if err := dev.Halt(); err != nil {
 			t.Fatal(err)
@@ -132,7 +134,7 @@ func TestSense180_success(t *testing.T) {
 	}
 }
 
-func TestSense180_fail_1(t *testing.T) {
+func TestSenseWeather180_fail_1(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -151,8 +153,8 @@ func TestSense180_fail_1(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
-	if dev.Sense(&e) == nil {
+	w := environment.Weather{}
+	if dev.SenseWeather(&w) == nil {
 		t.Fatal("sensing should have failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -160,7 +162,7 @@ func TestSense180_fail_1(t *testing.T) {
 	}
 }
 
-func TestSense180_fail_2(t *testing.T) {
+func TestSenseWeather180_fail_2(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -181,8 +183,8 @@ func TestSense180_fail_2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
-	if dev.Sense(&e) == nil {
+	w := environment.Weather{}
+	if dev.SenseWeather(&w) == nil {
 		t.Fatal("sensing should have failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -190,7 +192,7 @@ func TestSense180_fail_2(t *testing.T) {
 	}
 }
 
-func TestSense180_fail_3(t *testing.T) {
+func TestSenseWeather180_fail_3(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -213,8 +215,8 @@ func TestSense180_fail_3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
-	if dev.Sense(&e) == nil {
+	w := environment.Weather{}
+	if dev.SenseWeather(&w) == nil {
 		t.Fatal("sensing should have failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -222,7 +224,7 @@ func TestSense180_fail_3(t *testing.T) {
 	}
 }
 
-func TestSense180_fail_4(t *testing.T) {
+func TestSenseWeather180_fail_4(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -247,8 +249,8 @@ func TestSense180_fail_4(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
-	if dev.Sense(&e) == nil {
+	w := environment.Weather{}
+	if dev.SenseWeather(&w) == nil {
 		t.Fatal("sensing should have failed")
 	}
 	if err := bus.Close(); err != nil {
@@ -256,7 +258,7 @@ func TestSense180_fail_4(t *testing.T) {
 	}
 }
 
-func TestSenseContinuous180_success(t *testing.T) {
+func TestSenseWeatherContinuous180_success(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -290,49 +292,69 @@ func TestSenseContinuous180_success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := dev.SenseContinuous(time.Minute)
-	if err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := make(chan environment.WeatherSample)
+	go func() {
+		defer close(c)
+		dev.SenseWeatherContinuous(ctx, time.Millisecond, c)
+	}()
+
+	// First reading.
+	w := environment.WeatherSample{}
+	select {
+	case w = <-c:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out")
+	}
+	if w.Temperature != 25300*physic.MilliCelsius+physic.ZeroCelsius {
+		t.Fatalf("temp %d", w.Temperature)
+	}
+	if w.Pressure != 100567*physic.Pascal {
+		t.Fatalf("pressure %d", w.Pressure)
+	}
+	if w.Humidity != 0 {
+		t.Fatalf("humidity %d", w.Humidity)
+	}
+	if w.T.IsZero() {
+		t.Fatal("T is not set")
+	}
+	if w.Err != nil {
 		t.Fatal(err)
 	}
-	e := <-c
-	if e.Temperature != 25300*physic.MilliCelsius+physic.ZeroCelsius {
-		t.Fatalf("temp %d", e.Temperature)
-	}
-	if e.Pressure != 100567*physic.Pascal {
-		t.Fatalf("pressure %d", e.Pressure)
-	}
-	if e.Humidity != 0 {
-		t.Fatalf("humidity %d", e.Humidity)
-	}
 
-	if dev.Sense(&e) == nil {
-		t.Fatal("Sense() should have failed")
+	// Second reading.
+	select {
+	case w = <-c:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out")
 	}
-
-	c2, err := dev.SenseContinuous(time.Minute)
-	if err != nil {
+	if w.Temperature != 25300*physic.MilliCelsius+physic.ZeroCelsius {
+		t.Fatalf("temp %d", w.Temperature)
+	}
+	if w.Pressure != 100567*physic.Pascal {
+		t.Fatalf("pressure %d", w.Pressure)
+	}
+	if w.Humidity != 0 {
+		t.Fatalf("humidity %d", w.Humidity)
+	}
+	if w.T.IsZero() {
+		t.Fatal("T is not set")
+	}
+	if w.Err != nil {
 		t.Fatal(err)
 	}
 
-	e = <-c2
-
+	cancel()
 	if _, ok := <-c; ok {
 		t.Fatal("c should be closed")
 	}
-
-	if err := dev.Halt(); err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := <-c2; ok {
-		t.Fatal("c2 should be closed")
-	}
-
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestBmp180Precision(t *testing.T) {
+func TestBmp180PrecisionWeather(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -349,16 +371,16 @@ func TestBmp180Precision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
-	dev.Precision(&e)
-	if e.Temperature != 100*physic.MilliKelvin {
-		t.Fatal(e.Temperature)
+	w := environment.Weather{}
+	dev.PrecisionWeather(&w)
+	if w.Temperature != 100*physic.MilliKelvin {
+		t.Fatal(w.Temperature)
 	}
-	if e.Pressure != physic.Pascal {
-		t.Fatal(e.Pressure)
+	if w.Pressure != physic.Pascal {
+		t.Fatal(w.Pressure)
 	}
-	if e.Humidity != 0 {
-		t.Fatal(e.Humidity)
+	if w.Humidity != 0 {
+		t.Fatal(w.Humidity)
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)

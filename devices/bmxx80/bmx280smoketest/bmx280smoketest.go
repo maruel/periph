@@ -12,10 +12,10 @@ import (
 	"flag"
 	"fmt"
 
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/i2c/i2ctest"
-	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/conn/spi/spireg"
 	"periph.io/x/periph/conn/spi/spitest"
@@ -154,38 +154,38 @@ func run(i2cBus i2c.Bus, i2cAddr uint16, spiPort spi.PortCloser) (err error) {
 		}
 	}()
 
-	i2cEnv := physic.Env{}
-	spiEnv := physic.Env{}
-	if err2 = i2cDev.Sense(&i2cEnv); err2 != nil {
+	i2cW := environment.Weather{}
+	spiW := environment.Weather{}
+	if err2 = i2cDev.SenseWeather(&i2cW); err2 != nil {
 		return err2
 	}
-	printEnv(i2cDev, &i2cEnv)
-	if err2 = spiDev.Sense(&spiEnv); err2 != nil {
+	printWeather(i2cDev, &i2cW)
+	if err2 = spiDev.SenseWeather(&spiW); err2 != nil {
 		return err2
 	}
-	printEnv(spiDev, &spiEnv)
-	delta := physic.Env{
-		Temperature: i2cEnv.Temperature - spiEnv.Temperature,
-		Pressure:    i2cEnv.Pressure - spiEnv.Pressure,
-		Humidity:    i2cEnv.Humidity - spiEnv.Humidity,
+	printWeather(spiDev, &spiW)
+	delta := environment.Weather{
+		Temperature: i2cW.Temperature - spiW.Temperature,
+		Pressure:    i2cW.Pressure - spiW.Pressure,
+		Humidity:    i2cW.Humidity - spiW.Humidity,
 	}
-	printEnv("Delta", &delta)
+	printWeather("Delta", &delta)
 
 	// 1°C
 	if delta.Temperature > 1000 || delta.Temperature < -1000 {
-		return fmt.Errorf("temperature delta higher than expected (%s): I²C got %s; SPI got %s", delta.Temperature, i2cEnv.Temperature, spiEnv.Temperature)
+		return fmt.Errorf("temperature delta higher than expected (%s): I²C got %s; SPI got %s", delta.Temperature, i2cW.Temperature, spiW.Temperature)
 	}
 	// 0.1kPa
 	if delta.Pressure > 100 || delta.Pressure < -100 {
-		return fmt.Errorf("pressure delta higher than expected (%s): I²C got %s; SPI got %s", delta.Pressure, i2cEnv.Pressure, spiEnv.Pressure)
+		return fmt.Errorf("pressure delta higher than expected (%s): I²C got %s; SPI got %s", delta.Pressure, i2cW.Pressure, spiW.Pressure)
 	}
 	// 4%rH
 	if delta.Humidity > 400 || delta.Humidity < -400 {
-		return fmt.Errorf("humidity delta higher than expected (%s): I²C got %s; SPI got %s", delta.Humidity, i2cEnv.Humidity, spiEnv.Humidity)
+		return fmt.Errorf("humidity delta higher than expected (%s): I²C got %s; SPI got %s", delta.Humidity, i2cW.Humidity, spiW.Humidity)
 	}
 	return nil
 }
 
-func printEnv(dev interface{}, e *physic.Env) {
-	fmt.Printf("%-18s: %8s %10s %9s\n", dev, e.Temperature, e.Pressure, e.Humidity)
+func printWeather(dev interface{}, w *environment.Weather) {
+	fmt.Printf("%-18s: %8s %10s %9s\n", dev, w.Temperature, w.Pressure, w.Humidity)
 }

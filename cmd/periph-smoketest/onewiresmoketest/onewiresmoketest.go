@@ -19,6 +19,7 @@ import (
 	"math/rand"
 	"time"
 
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/conn/physic"
@@ -119,15 +120,15 @@ func (s *SmokeTest) ds18b20(bus onewire.Bus, addr onewire.Address) error {
 		return err
 	}
 
-	e := physic.Env{}
-	if err := dev.Sense(&e); err != nil {
+	w := environment.Weather{}
+	if err := dev.SenseWeather(&w); err != nil {
 		return err
 	}
-	if e.Temperature <= physic.ZeroCelsius || e.Temperature > 50*physic.Celsius+physic.ZeroCelsius {
-		return fmt.Errorf("ds18b20: expected temperature in the 0°C..50°C range, got %s", e.Temperature)
+	if w.Temperature <= physic.ZeroCelsius || w.Temperature > 50*physic.Celsius+physic.ZeroCelsius {
+		return fmt.Errorf("ds18b20: expected temperature in the 0°C..50°C range, got %s", w.Temperature)
 	}
 
-	log.Printf("%s: temperature is %s", s, e.Temperature)
+	log.Printf("%s: temperature is %s", s, w.Temperature)
 	return nil
 }
 

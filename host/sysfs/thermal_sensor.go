@@ -5,6 +5,7 @@
 package sysfs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -16,6 +17,7 @@ import (
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/physic"
 )
 
@@ -50,22 +52,14 @@ type ThermalSensor struct {
 	nameType  string
 	f         fileIO
 	precision physic.Temperature
-
-	done chan struct{}
 }
 
 func (t *ThermalSensor) String() string {
 	return t.name
 }
 
-// Halt stops a continuous sense that was started with SenseContinuous.
+// Halt does nothing.
 func (t *ThermalSensor) Halt() error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	if t.done != nil {
-		close(t.done)
-		t.done = nil
-	}
 	return nil
 }
 
@@ -103,8 +97,8 @@ func (t *ThermalSensor) readType() (string, error) {
 	return string(buf[:n-1]), nil
 }
 
-// Sense implements physic.SenseEnv.
-func (t *ThermalSensor) Sense(e *physic.Env) error {
+// SenseWeather implements environment.SenseWeather.
+func (t *ThermalSensor) SenseWeather(w *environment.Weather) error {
 	if err := t.open(); err != nil {
 		return err
 	}
@@ -128,51 +122,65 @@ func (t *ThermalSensor) Sense(e *physic.Env) error {
 			t.precision *= 1000
 		}
 	}
-	e.Temperature = physic.Temperature(i)*t.precision + physic.ZeroCelsius
+	w.Temperature = physic.Temperature(i)*t.precision + physic.ZeroCelsius
 	return nil
 }
 
-// SenseContinuous implements physic.SenseEnv.
-func (t *ThermalSensor) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	if t.done != nil {
-		return nil, nil
+// SenseWeatherContinuous implements environment.SenseWeather.
+func (t *ThermalSensor) SenseWeatherContinuous(ctx context.Context, interval time.Duration, c chan<- environment.WeatherSample) {
+	// Validation.
+	done := ctx.Done()
+	select {
+	case <-done:
+		return
+	default:
 	}
-	done := make(chan struct{})
-	ret := make(chan physic.Env)
-	ticker := time.NewTicker(interval)
 
-	go func() {
-		defer ticker.Stop()
-		for {
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
+
+	// First reading.
+	w := environment.WeatherSample{T: time.Now()}
+	w.Err = t.SenseWeather(&w.Weather)
+	select {
+	case c <- w:
+		if w.Err != nil {
+			return
+		}
+	case <-done:
+		return
+	}
+
+	// Reading loop.
+	for {
+		select {
+		case <-done:
+			return
+		case <-tick.C:
+			w.T = time.Now()
+			w.Err = t.SenseWeather(&w.Weather)
 			select {
-			case <-done:
-				close(ret)
-				return
-			case <-ticker.C:
-				var e physic.Env
-				if err := t.Sense(&e); err == nil {
-					ret <- e
+			case c <- w:
+				if w.Err != nil {
+					return
 				}
+			case <-done:
+				return
 			}
 		}
-	}()
-
-	t.done = done
-	return ret, nil
+	}
 }
 
-// Precision implements physic.SenseEnv.
-func (t *ThermalSensor) Precision(e *physic.Env) {
+// PrecisionWeather implements environment.SenseWeather.
+func (t *ThermalSensor) PrecisionWeather(w *environment.Weather) {
 	if t.precision == 0 {
-		dummy := physic.Env{}
+		dummy := environment.Weather{}
 		// Ignore the error.
-		_ = t.Sense(&dummy)
+		_ = t.SenseWeather(&dummy)
 	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	e.Temperature = t.precision
+	w.Temperature = t.precision
 }
 
 //
@@ -258,4 +266,4 @@ func init() {
 var drvThermalSensor driverThermalSensor
 
 var _ conn.Resource = &ThermalSensor{}
-var _ physic.SenseEnv = &ThermalSensor{}
+var _ environment.SenseWeather = &ThermalSensor{}

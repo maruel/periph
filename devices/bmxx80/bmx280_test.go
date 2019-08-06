@@ -5,6 +5,7 @@
 package bmxx80
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"io/ioutil"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/conntest"
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
@@ -42,7 +44,7 @@ var calib280 = calibration280{
 	h6: 30,
 }
 
-func TestSPISenseBME280_success(t *testing.T) {
+func TestSPISenseWeatherBME280_success(t *testing.T) {
 	s := spitest.Playback{
 		Playback: conntest.Playback{
 			Ops: []conntest.IO{
@@ -87,21 +89,21 @@ func TestSPISenseBME280_success(t *testing.T) {
 	if s := dev.String(); s != "BME280{playback}" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
-	if err := dev.Sense(&e); err != nil {
+	w := environment.Weather{}
+	if err := dev.SenseWeather(&w); err != nil {
 		t.Fatal(err)
 	}
 	// TODO(maruel): The values do not make sense but I think I burned my SPI
 	// BME280 by misconnecting it in reverse for a few minutes. It still "work"
 	// but fail to read data. It could also be a bug in the driver. :(
-	if expected := 62680*physic.MilliCelsius + physic.ZeroCelsius; e.Temperature != expected {
-		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, e.Temperature, e.Temperature)
+	if expected := 62680*physic.MilliCelsius + physic.ZeroCelsius; w.Temperature != expected {
+		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, w.Temperature, w.Temperature)
 	}
-	if expected := 99575933593750 * physic.NanoPascal; e.Pressure != expected {
-		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, e.Pressure, e.Pressure)
+	if expected := 99575933593750 * physic.NanoPascal; w.Pressure != expected {
+		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, w.Pressure, w.Pressure)
 	}
-	if expected := 995010 * physic.TenthMicroRH; e.Humidity != expected {
-		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, e.Humidity, e.Humidity)
+	if expected := 995010 * physic.TenthMicroRH; w.Humidity != expected {
+		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, w.Humidity, w.Humidity)
 	}
 	if err := s.Close(); err != nil {
 		t.Fatal(err)
@@ -263,7 +265,7 @@ func TestNewI2C280_bad_addr(t *testing.T) {
 	}
 }
 
-func TestI2CSenseBME280_fail(t *testing.T) {
+func TestI2CSenseWeatherBME280_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -288,7 +290,7 @@ func TestI2CSenseBME280_fail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dev.Sense(&physic.Env{}) == nil {
+	if dev.SenseWeather(&environment.Weather{}) == nil {
 		t.Fatal("sense fail read")
 	}
 	// The I/O didn't occur.
@@ -298,7 +300,7 @@ func TestI2CSenseBME280_fail(t *testing.T) {
 	}
 }
 
-func TestI2CSenseBMP280_success(t *testing.T) {
+func TestI2CSenseWeatherBMP280_success(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -328,18 +330,18 @@ func TestI2CSenseBMP280_success(t *testing.T) {
 	if s := dev.String(); s != "BMP280{playback(118)}" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
-	if err := dev.Sense(&e); err != nil {
+	w := environment.Weather{}
+	if err := dev.SenseWeather(&w); err != nil {
 		t.Fatal(err)
 	}
-	if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; e.Temperature != expected {
-		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, e.Temperature, e.Temperature)
+	if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; w.Temperature != expected {
+		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, w.Temperature, w.Temperature)
 	}
-	if expected := 100942695312500 * physic.NanoPascal; e.Pressure != expected {
-		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, e.Pressure, e.Pressure)
+	if expected := 100942695312500 * physic.NanoPascal; w.Pressure != expected {
+		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, w.Pressure, w.Pressure)
 	}
-	if expected := 0 * physic.MilliRH; e.Humidity != expected {
-		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, e.Humidity, e.Humidity)
+	if expected := 0 * physic.MilliRH; w.Humidity != expected {
+		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, w.Humidity, w.Humidity)
 	}
 	if err := dev.Halt(); err != nil {
 		t.Fatal(err)
@@ -349,7 +351,7 @@ func TestI2CSenseBMP280_success(t *testing.T) {
 	}
 }
 
-func TestI2CSenseBME280_success(t *testing.T) {
+func TestI2CSenseWeatherBME280_success(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -381,18 +383,18 @@ func TestI2CSenseBME280_success(t *testing.T) {
 	if s := dev.String(); s != "BME280{playback(118)}" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
-	if err := dev.Sense(&e); err != nil {
+	w := environment.Weather{}
+	if err := dev.SenseWeather(&w); err != nil {
 		t.Fatal(err)
 	}
-	if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; e.Temperature != expected {
-		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, e.Temperature, e.Temperature)
+	if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; w.Temperature != expected {
+		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, w.Temperature, w.Temperature)
 	}
-	if expected := 100942695312500 * physic.NanoPascal; e.Pressure != expected {
-		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, e.Pressure, e.Pressure)
+	if expected := 100942695312500 * physic.NanoPascal; w.Pressure != expected {
+		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, w.Pressure, w.Pressure)
 	}
-	if expected := 6530560 * physic.TenthMicroRH; e.Humidity != expected {
-		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, e.Humidity, e.Humidity)
+	if expected := 6530560 * physic.TenthMicroRH; w.Humidity != expected {
+		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, w.Humidity, w.Humidity)
 	}
 	if err := dev.Halt(); err != nil {
 		t.Fatal(err)
@@ -402,7 +404,7 @@ func TestI2CSenseBME280_success(t *testing.T) {
 	}
 }
 
-func TestI2CSense280_idle_fail(t *testing.T) {
+func TestI2CSenseWeather280_idle_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -430,13 +432,13 @@ func TestI2CSense280_idle_fail(t *testing.T) {
 	if s := dev.String(); s != "BME280{playback(118)}" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
-	if dev.Sense(&e) == nil {
+	w := environment.Weather{}
+	if dev.SenseWeather(&w) == nil {
 		t.Fatal("isIdle() should have failed")
 	}
 }
 
-func TestI2CSense280_command_fail(t *testing.T) {
+func TestI2CSenseWeather280_command_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -466,13 +468,43 @@ func TestI2CSense280_command_fail(t *testing.T) {
 	if s := dev.String(); s != "BME280{playback(118)}" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
-	if dev.Sense(&e) == nil {
+	w := environment.Weather{}
+	if dev.SenseWeather(&w) == nil {
 		t.Fatal("isIdle() should have failed")
 	}
 }
 
-func TestI2CSenseContinuous280_success(t *testing.T) {
+func TestI2CSenseWeatherContinuous280_canceled(t *testing.T) {
+	bus := i2ctest.Playback{
+		Ops: []i2ctest.IO{
+			// Chip ID detection.
+			{Addr: 0x76, W: []byte{0xd0}, R: []byte{0x60}},
+			// Calibration data.
+			{
+				Addr: 0x76,
+				W:    []byte{0x88},
+				R:    []byte{0x10, 0x6e, 0x6c, 0x66, 0x32, 0x0, 0x5d, 0x95, 0xb8, 0xd5, 0xd0, 0xb, 0x77, 0x1e, 0x9d, 0xff, 0xf9, 0xff, 0xac, 0x26, 0xa, 0xd8, 0xbd, 0x10, 0x0, 0x4b},
+			},
+			// Calibration data humidity.
+			{Addr: 0x76, W: []byte{0xe1}, R: []byte{0x6e, 0x1, 0x0, 0x13, 0x5, 0x0, 0x1e}},
+			// Configuration.
+			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
+		},
+	}
+	dev, err := NewI2C(&bus, 0x76, &DefaultOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	c := make(chan environment.WeatherSample)
+	dev.SenseWeatherContinuous(ctx, time.Millisecond, c)
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestI2CSenseWeatherContinuous280_success(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -488,13 +520,7 @@ func TestI2CSenseContinuous280_success(t *testing.T) {
 			// Configuration.
 			{Addr: 0x76, W: []byte{0xf4, 0x6c, 0xf2, 0x3, 0xf5, 0xa0, 0xf4, 0x6c}, R: nil},
 			// Normal mode.
-			{Addr: 0x76, W: []byte{0xF5, 0xa0, 0xf4, 0x6f}},
-			// Read.
-			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
-			// Normal mode.
-			{Addr: 0x76, W: []byte{0xF5, 0, 0xf4, 0x6f}},
-			// Read.
-			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
+			{Addr: 0x76, W: []byte{0xF5, 0x00, 0xf4, 0x6f}},
 			// Read.
 			{Addr: 0x76, W: []byte{0xf7}, R: []byte{0x4a, 0x52, 0xc0, 0x80, 0x96, 0xc0, 0x7a, 0x76}},
 			// Read.
@@ -507,82 +533,74 @@ func TestI2CSenseContinuous280_success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := dev.SenseContinuous(time.Minute)
-	if err != nil {
-		t.Fatal(err)
-	}
-	e := physic.Env{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := make(chan environment.WeatherSample)
+	go func() {
+		dev.SenseWeatherContinuous(ctx, time.Millisecond, c)
+		close(c)
+	}()
+
+	// First reading.
 	select {
-	case e = <-c:
-	case <-time.After(2 * time.Second):
-		t.Fatal("failed")
-	}
-	if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; e.Temperature != expected {
-		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, e.Temperature, e.Temperature)
-	}
-	if expected := 100942695312500 * physic.NanoPascal; e.Pressure != expected {
-		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, e.Pressure, e.Pressure)
-	}
-	if expected := 6530560 * physic.TenthMicroRH; e.Humidity != expected {
-		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, e.Humidity, e.Humidity)
-	}
-
-	// This cancels the previous channel and resets the interval.
-	c2, err := dev.SenseContinuous(time.Nanosecond)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, ok := <-c; ok {
-		t.Fatal("c should be closed")
-	}
-	select {
-	case e = <-c2:
-	case <-time.After(2 * time.Second):
-		t.Fatal("failed")
-	}
-	select {
-	case e = <-c2:
-	case <-time.After(2 * time.Second):
-		t.Fatal("failed")
-	}
-	if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; e.Temperature != expected {
-		t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, e.Temperature, e.Temperature)
-	}
-	if expected := 100942695312500 * physic.NanoPascal; e.Pressure != expected {
-		t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, e.Pressure, e.Pressure)
-	}
-	if expected := 6530560 * physic.TenthMicroRH; e.Humidity != expected {
-		t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, e.Humidity, e.Humidity)
-	}
-
-	if dev.Sense(&e) == nil {
-		t.Fatal("can't Sense() during SenseContinously")
-	}
-
-	// Inspect to make sure senseContinuous() had the time to do its things. This
-	// is a bit sad but it is the simplest way to make this test deterministic.
-	for {
-		bus.Lock()
-		count := bus.Count
-		bus.Unlock()
-		if count == 10 {
-			break
+	case w, ok := <-c:
+		if !ok {
+			t.Fatal("unexpected channel closed")
 		}
+		if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; w.Temperature != expected {
+			t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, w.Temperature, w.Temperature)
+		}
+		if expected := 100942695312500 * physic.NanoPascal; w.Pressure != expected {
+			t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, w.Pressure, w.Pressure)
+		}
+		if expected := 6530560 * physic.TenthMicroRH; w.Humidity != expected {
+			t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, w.Humidity, w.Humidity)
+		}
+		if w.T.IsZero() {
+			t.Fatal("T is not set")
+		}
+		if w.Err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out")
 	}
 
-	if err := dev.Halt(); err != nil {
-		t.Fatal(err)
+	// Second reading.
+	select {
+	case w, ok := <-c:
+		if !ok {
+			t.Fatal("unexpected channel closed")
+		}
+		if expected := 23720*physic.MilliCelsius + physic.ZeroCelsius; w.Temperature != expected {
+			t.Fatalf("temperature %s(%d) != %s(%d)", expected, expected, w.Temperature, w.Temperature)
+		}
+		if expected := 100942695312500 * physic.NanoPascal; w.Pressure != expected {
+			t.Fatalf("pressure %s(%d) != %s(%d)", expected, expected, w.Pressure, w.Pressure)
+		}
+		if expected := 6530560 * physic.TenthMicroRH; w.Humidity != expected {
+			t.Fatalf("humidity %s(%d) != %s(%d)", expected, expected, w.Humidity, w.Humidity)
+		}
+		if w.T.IsZero() {
+			t.Fatal("T is not set")
+		}
+		if w.Err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out")
 	}
-	if _, ok := <-c2; ok {
-		t.Fatal("c2 should be closed")
+
+	cancel()
+	if _, ok := <-c; ok {
+		t.Fatal("expected channel c to be closed")
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestI2CSenseContinuous280_command_fail(t *testing.T) {
+func TestI2CSenseWeatherContinuous280_command_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -605,12 +623,29 @@ func TestI2CSenseContinuous280_command_fail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := dev.SenseContinuous(time.Minute); err == nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := make(chan environment.WeatherSample)
+	go func() {
+		defer close(c)
+		dev.SenseWeatherContinuous(ctx, time.Minute, c)
+	}()
+	w := <-c
+	if w.Err == nil {
 		t.Fatal("send command should have failed")
+	}
+	if w.T.IsZero() {
+		t.Fatal("T is not set")
+	}
+	if _, ok := <-c; ok {
+		t.Fatal("expected channel c to be closed")
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
-func TestI2CSenseContinuous280_sense_fail(t *testing.T) {
+func TestI2CSenseWeatherContinuous280_sense_fail(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -635,17 +670,25 @@ func TestI2CSenseContinuous280_sense_fail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := dev.SenseContinuous(time.Minute)
-	if err != nil {
-		t.Fatal(err)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := make(chan environment.WeatherSample)
+	go func() {
+		defer close(c)
+		dev.SenseWeatherContinuous(ctx, time.Minute, c)
+	}()
+	w := <-c
+	if w.Err == nil {
+		t.Fatal("expected failure from i2ctest.Playback since there's nothing to read")
 	}
-	select {
-	case _, ok := <-c:
-		if ok {
-			t.Fatal("expecting channel to be closed")
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("failed")
+	if w.T.IsZero() {
+		t.Fatal("T is not set")
+	}
+	if _, ok := <-c; ok {
+		t.Fatal("expected channel c to be closed")
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -731,7 +774,7 @@ func TestCalibration280_limits_419430400(t *testing.T) {
 	// TODO(maruel): Reverse the equation to overflow  419430400
 }
 
-func TestBme280Precision(t *testing.T) {
+func TestBme280PrecisionWeather(t *testing.T) {
 	bus := i2ctest.Playback{
 		Ops: []i2ctest.IO{
 			// Chip ID detection.
@@ -752,16 +795,16 @@ func TestBme280Precision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := physic.Env{}
-	dev.Precision(&e)
-	if e.Temperature != 10*physic.MilliKelvin {
-		t.Fatal(e.Temperature)
+	w := environment.Weather{}
+	dev.PrecisionWeather(&w)
+	if w.Temperature != 10*physic.MilliKelvin {
+		t.Fatal(w.Temperature)
 	}
-	if e.Pressure != 15625*physic.MicroPascal/4 {
-		t.Fatal(e.Pressure)
+	if w.Pressure != 15625*physic.MicroPascal/4 {
+		t.Fatal(w.Pressure)
 	}
-	if e.Humidity != 90*physic.TenthMicroRH {
-		t.Fatal(int(e.Humidity))
+	if w.Humidity != 90*physic.TenthMicroRH {
+		t.Fatal(int(w.Humidity))
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)

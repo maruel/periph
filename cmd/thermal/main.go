@@ -6,14 +6,16 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 
-	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/host"
 	"periph.io/x/periph/host/sysfs"
 )
@@ -53,22 +55,34 @@ func mainImpl() error {
 	// Read continuously if an interval was provided.
 	if *interval != 0 {
 		t := sensors[0] // There is exactly 1 device, enforced above.
-		ch, err := t.SenseContinuous(*interval)
-		if err != nil {
-			return err
-		}
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		cs := make(chan os.Signal, 1)
+		signal.Notify(cs, os.Interrupt)
+		go func() {
+			<-cs
+			cancel()
+		}()
+		cw := make(chan environment.WeatherSample)
+		go func() {
+			t.SenseWeatherContinuous(ctx, *interval, cw)
+			close(cw)
+		}()
 		for {
-			e := <-ch
-			fmt.Printf("%s: %s: %s\n", t, t.Type(), e.Temperature)
+			w := <-cw
+			if w.Err != nil {
+				return w.Err
+			}
+			fmt.Printf("%s: %s: %s\n", t, t.Type(), w.Temperature)
 		}
 	}
 
 	for _, t := range sensors {
-		e := physic.Env{}
-		if err := t.Sense(&e); err != nil {
+		w := environment.Weather{}
+		if err := t.SenseWeather(&w); err != nil {
 			return err
 		}
-		fmt.Printf("%s: %s: %s\n", t, t.Type(), e.Temperature)
+		fmt.Printf("%s: %s: %s\n", t, t.Type(), w.Temperature)
 	}
 	return nil
 }

@@ -5,10 +5,12 @@
 package ds18b20
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
 
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/onewire"
 	"periph.io/x/periph/conn/onewire/onewiretest"
 	"periph.io/x/periph/conn/physic"
@@ -30,9 +32,34 @@ func TestNew_fail_read(t *testing.T) {
 	}
 }
 
-// TestSense tests a temperature conversion on a ds18b20 using
+func TestString(t *testing.T) {
+	ops := []onewiretest.IO{
+		// Match ROM + Read Scratchpad (init)
+		{
+			W: []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0xbe},
+			R: []uint8{0xe0, 0x1, 0x0, 0x0, 0x3f, 0xff, 0x10, 0x10, 0x3f},
+		},
+	}
+	var addr onewire.Address = 0x740000070e41ac28
+	bus := onewiretest.Playback{Ops: ops}
+	dev, err := New(&bus, addr, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := dev.String(); s != "DS18B20{playback(0x740000070e41ac28)}" {
+		t.Fatal(s)
+	}
+	if err := dev.Halt(); err != nil {
+		t.Fatal(err)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestSenseWeather tests a temperature conversion on a ds18b20 using
 // recorded bus transactions.
-func TestSense(t *testing.T) {
+func TestSenseWeather(t *testing.T) {
 	// set-up playback using the recording output.
 	ops := []onewiretest.IO{
 		// Match ROM + Read Scratchpad (init)
@@ -57,20 +84,17 @@ func TestSense(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s := dev.String(); s != "DS18B20{playback(0x740000070e41ac28)}" {
-		t.Fatal(s)
-	}
 	// Read the temperature.
 	var sleeps []time.Duration
 	sleep = func(d time.Duration) { sleeps = append(sleeps, d) }
 	defer func() { sleep = func(time.Duration) {} }()
-	e := physic.Env{}
-	if err := dev.Sense(&e); err != nil {
+	w := environment.Weather{}
+	if err := dev.SenseWeather(&w); err != nil {
 		t.Fatal(err)
 	}
 	// Expect the correct value.
-	if expected := 30*physic.Celsius + physic.ZeroCelsius; e.Temperature != expected {
-		t.Errorf("expected %s, got %s", expected.String(), e.Temperature.String())
+	if expected := 30*physic.Celsius + physic.ZeroCelsius; w.Temperature != expected {
+		t.Errorf("expected %s, got %s", expected.String(), w.Temperature.String())
 	}
 	// Expect it to take >187ms
 	if !reflect.DeepEqual(sleeps, []time.Duration{188 * time.Millisecond}) {
@@ -78,6 +102,58 @@ func TestSense(t *testing.T) {
 	}
 	if err := dev.Halt(); err != nil {
 		t.Fatal(err)
+	}
+	if err := bus.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSenseWeatherContinuous(t *testing.T) {
+	// set-up playback using the recording output.
+	ops := []onewiretest.IO{
+		// Match ROM + Read Scratchpad (init)
+		{
+			W: []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0xbe},
+			R: []uint8{0xe0, 0x1, 0x0, 0x0, 0x3f, 0xff, 0x10, 0x10, 0x3f},
+		},
+		// Match ROM + Convert
+		{
+			W:    []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0x44},
+			Pull: true,
+		},
+		// Match ROM + Read Scratchpad (read temp)
+		{
+			W: []uint8{0x55, 0x28, 0xac, 0x41, 0xe, 0x7, 0x0, 0x0, 0x74, 0xbe},
+			R: []uint8{0xe0, 0x1, 0x0, 0x0, 0x3f, 0xff, 0x10, 0x10, 0x3f},
+		},
+	}
+	var addr onewire.Address = 0x740000070e41ac28
+	bus := onewiretest.Playback{Ops: ops}
+	dev, err := New(&bus, addr, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := make(chan environment.WeatherSample)
+	go func() {
+		defer close(c)
+		dev.SenseWeatherContinuous(ctx, time.Minute, c)
+	}()
+	w := <-c
+	// Expect the correct value.
+	if expected := 30*physic.Celsius + physic.ZeroCelsius; w.Temperature != expected {
+		t.Errorf("expected %s, got %s", expected.String(), w.Temperature.String())
+	}
+	if w.Err != nil {
+		t.Fatal(err)
+	}
+	if w.T.IsZero() {
+		t.Fatal("T is not set")
+	}
+	cancel()
+	if _, ok := <-c; ok {
+		t.Fatal("c should be closed")
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)

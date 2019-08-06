@@ -5,15 +5,15 @@
 package bmxx80
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
-	"sync"
 	"time"
 
 	"periph.io/x/periph/conn"
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/mmr"
 	"periph.io/x/periph/conn/physic"
@@ -138,8 +138,8 @@ type Opts struct {
 	// Humidity sensing is only supported on BME280. The value is ignored on other
 	// devices.
 	Humidity Oversampling
-	// Filter is only used while using SenseContinuous() and is only supported on
-	// BMx280.
+	// Filter is only used while using SenseWeatherContinuous() and is only
+	// supported on BMx280.
 	Filter Filter
 }
 
@@ -204,6 +204,7 @@ func NewSPI(p spi.Port, opts *Opts) (*Dev, error) {
 //
 // The actual device type was auto detected.
 type Dev struct {
+	// Immutable.
 	d         conn.Conn
 	isSPI     bool
 	is280     bool
@@ -214,10 +215,6 @@ type Dev struct {
 	os        uint8
 	cal180    calibration180
 	cal280    calibration280
-
-	mu   sync.Mutex
-	stop chan struct{}
-	wg   sync.WaitGroup
 }
 
 func (d *Dev) String() string {
@@ -225,16 +222,11 @@ func (d *Dev) String() string {
 	return fmt.Sprintf("%s{%s}", d.name, d.d)
 }
 
-// Sense requests a one time measurement as °C, kPa and % of relative humidity.
+// SenseWeather requests a one time measurement as °C, kPa and % of relative
+// humidity.
 //
 // The very first measurements may be of poor quality.
-func (d *Dev) Sense(e *physic.Env) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if d.stop != nil {
-		return d.wrap(errors.New("already sensing continuously"))
-	}
-
+func (d *Dev) SenseWeather(w *environment.Weather) error {
 	if d.is280 {
 		err := d.writeCommands([]byte{
 			// ctrl_meas
@@ -249,92 +241,101 @@ func (d *Dev) Sense(e *physic.Env) error {
 				return d.wrap(err)
 			}
 		}
-		return d.sense280(e)
+		return d.sense280(w)
 	}
-	return d.sense180(e)
+	return d.sense180(w)
 }
 
-// SenseContinuous returns measurements as °C, kPa and % of relative humidity
-// on a continuous basis.
-//
-// The application must call Halt() to stop the sensing when done to stop the
-// sensor and close the channel.
+// SenseWeatherContinuous returns measurements as °C, kPa and % of relative
+// humidity on a continuous basis.
 //
 // It's the responsibility of the caller to retrieve the values from the
 // channel as fast as possible, otherwise the interval may not be respected.
-func (d *Dev) SenseContinuous(interval time.Duration) (<-chan physic.Env, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if d.stop != nil {
-		// Don't send the stop command to the device.
-		close(d.stop)
-		d.stop = nil
-		d.wg.Wait()
+func (d *Dev) SenseWeatherContinuous(ctx context.Context, interval time.Duration, c chan<- environment.WeatherSample) {
+	// Validation.
+	done := ctx.Done()
+	select {
+	case <-done:
+		return
+	default:
 	}
 
 	if d.is280 {
+		// Initialize continuous reading.
 		s := chooseStandby(d.isBME, interval-d.measDelay)
-		err := d.writeCommands([]byte{
+		cmd := [...]byte{
 			// config
 			0xF5, byte(s)<<5 | byte(d.opts.Filter)<<2,
 			// ctrl_meas
 			0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(normal),
-		})
-		if err != nil {
-			return nil, d.wrap(err)
 		}
+		if err := d.writeCommands(cmd[:]); err != nil {
+			c <- environment.WeatherSample{T: time.Now(), Err: d.wrap(err)}
+			return
+		}
+		defer d.stopContinuous280()
 	}
 
-	sensing := make(chan physic.Env)
-	d.stop = make(chan struct{})
-	d.wg.Add(1)
-	go func() {
-		defer d.wg.Done()
-		defer close(sensing)
-		d.sensingContinuous(interval, sensing, d.stop)
-	}()
-	return sensing, nil
+	t := time.NewTicker(interval)
+	defer t.Stop()
+
+	// First reading.
+	w := environment.WeatherSample{T: time.Now()}
+	if d.is280 {
+		w.Err = d.sense280(&w.Weather)
+	} else {
+		w.Err = d.sense180(&w.Weather)
+	}
+	select {
+	case c <- w:
+		if w.Err != nil {
+			return
+		}
+	case <-done:
+		return
+	}
+
+	// Reading loop.
+	for {
+		select {
+		case <-done:
+			return
+		case <-t.C:
+			w.T = time.Now()
+			if d.is280 {
+				w.Err = d.sense280(&w.Weather)
+			} else {
+				w.Err = d.sense180(&w.Weather)
+			}
+			select {
+			case c <- w:
+				if w.Err != nil {
+					return
+				}
+			case <-done:
+				return
+			}
+		}
+	}
 }
 
-// Precision implements physic.SenseEnv.
-func (d *Dev) Precision(e *physic.Env) {
+// PrecisionWeather implements environment.SenseWeather.
+func (d *Dev) PrecisionWeather(w *environment.Weather) {
 	if d.is280 {
-		e.Temperature = 10 * physic.MilliKelvin
-		e.Pressure = 15625 * physic.MicroPascal / 4
+		w.Temperature = 10 * physic.MilliKelvin
+		w.Pressure = 15625 * physic.MicroPascal / 4
 	} else {
-		e.Temperature = 100 * physic.MilliKelvin
-		e.Pressure = physic.Pascal
+		w.Temperature = 100 * physic.MilliKelvin
+		w.Pressure = physic.Pascal
 	}
 
 	if d.isBME {
-		e.Humidity = 10000 / 1024 * physic.MicroRH
+		w.Humidity = 10000 / 1024 * physic.MicroRH
 	}
 }
 
-// Halt stops the BMxx80 from acquiring measurements as initiated by
-// SenseContinuous().
-//
-// It is recommended to call this function before terminating the process to
-// reduce idle power usage and a goroutine leak.
+// Halt implements conn.Resource.
 func (d *Dev) Halt() error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if d.stop == nil {
-		return nil
-	}
-	close(d.stop)
-	d.stop = nil
-	d.wg.Wait()
-
-	if d.is280 {
-		// Page 27 (for register) and 12~13 section 3.3.
-		return d.writeCommands([]byte{
-			// config
-			0xF5, byte(s1s)<<5 | byte(NoFilter)<<2,
-			// ctrl_meas
-			0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(sleep),
-		})
-	}
 	return nil
 }
 
@@ -428,36 +429,17 @@ func (d *Dev) makeDev(opts *Opts) error {
 	return nil
 }
 
-func (d *Dev) sensingContinuous(interval time.Duration, sensing chan<- physic.Env, stop <-chan struct{}) {
-	t := time.NewTicker(interval)
-	defer t.Stop()
-
-	var err error
-	for {
-		// Do one initial sensing right away.
-		e := physic.Env{}
-		d.mu.Lock()
-		if d.is280 {
-			err = d.sense280(&e)
-		} else {
-			err = d.sense180(&e)
-		}
-		d.mu.Unlock()
-		if err != nil {
-			log.Printf("%s: failed to sense: %v", d, err)
-			return
-		}
-		select {
-		case sensing <- e:
-		case <-stop:
-			return
-		}
-		select {
-		case <-stop:
-			return
-		case <-t.C:
-		}
+func (d *Dev) stopContinuous280() error {
+	if d.is280 {
+		// Page 27 (for register) and 12~13 section 3.3.
+		return d.writeCommands([]byte{
+			// config
+			0xF5, byte(s1s)<<5 | byte(NoFilter)<<2,
+			// ctrl_meas
+			0xF4, byte(d.opts.Temperature)<<5 | byte(d.opts.Pressure)<<2 | byte(sleep),
+		})
 	}
+	return nil
 }
 
 func (d *Dev) readReg(reg uint8, b []byte) error {
@@ -503,4 +485,4 @@ func (d *Dev) wrap(err error) error {
 var doSleep = time.Sleep
 
 var _ conn.Resource = &Dev{}
-var _ physic.SenseEnv = &Dev{}
+var _ environment.SenseWeather = &Dev{}

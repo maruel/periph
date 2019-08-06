@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/gpio"
-	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/devices/apa102"
 	"periph.io/x/periph/experimental/devices/rainbowhat"
 	"periph.io/x/periph/host"
@@ -81,14 +81,14 @@ func Example() {
 	ticker := time.NewTicker(3 * time.Second)
 	go func() {
 		for {
-			var envi physic.Env
-			if err := sensor.Sense(&envi); err != nil {
+			var w environment.Weather
+			if err := sensor.SenseWeather(&w); err != nil {
 				log.Fatal(err)
 			}
 
-			temp := fmt.Sprintf("%5s", envi.Temperature)
-			fmt.Printf("Pressure %8s \n", envi.Pressure)
-			fmt.Printf("Temperature %8s \n", envi.Temperature)
+			temp := fmt.Sprintf("%5s", w.Temperature)
+			fmt.Printf("Pressure %8s \n", w.Pressure)
+			fmt.Printf("Temperature %8s \n", w.Temperature)
 
 			if _, err := display.WriteString(temp); err != nil {
 				log.Fatal(err)

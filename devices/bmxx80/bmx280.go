@@ -7,13 +7,14 @@ package bmxx80
 import (
 	"time"
 
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/physic"
 )
 
 // sense280 reads the device's registers for bme280/bmp280.
 //
 // It must be called with d.mu lock held.
-func (d *Dev) sense280(e *physic.Env) error {
+func (d *Dev) sense280(w *environment.Weather) error {
 	// All registers must be read in a single pass, as noted at page 21, section
 	// 4.1.
 	// Pressure: 0xF7~0xF9
@@ -33,12 +34,12 @@ func (d *Dev) sense280(e *physic.Env) error {
 
 	t, tFine := d.cal280.compensateTempInt(tRaw)
 	// Convert CentiCelsius to Kelvin.
-	e.Temperature = physic.Temperature(t)*10*physic.MilliCelsius + physic.ZeroCelsius
+	w.Temperature = physic.Temperature(t)*10*physic.MilliCelsius + physic.ZeroCelsius
 
 	if d.opts.Pressure != Off {
 		p := d.cal280.compensatePressureInt64(pRaw, tFine)
 		// It has 8 bits of fractional Pascal.
-		e.Pressure = physic.Pressure(p) * 15625 * physic.MicroPascal / 4
+		w.Pressure = physic.Pressure(p) * 15625 * physic.MicroPascal / 4
 	}
 
 	if d.opts.Humidity != Off {
@@ -46,7 +47,7 @@ func (d *Dev) sense280(e *physic.Env) error {
 		hRaw := int32(buf[6])<<8 | int32(buf[7])
 		h := physic.RelativeHumidity(d.cal280.compensateHumidityInt(hRaw, tFine))
 		// Convert base 1024 to base 1000.
-		e.Humidity = h * 10000 / 1024 * physic.MicroRH
+		w.Humidity = h * 10000 / 1024 * physic.MicroRH
 	}
 	return nil
 }

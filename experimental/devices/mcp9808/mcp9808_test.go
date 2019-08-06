@@ -5,11 +5,14 @@
 package mcp9808
 
 import (
+	"context"
 	"encoding/binary"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/mmr"
@@ -65,7 +68,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestSense(t *testing.T) {
+func TestSenseWeather(t *testing.T) {
 	tests := []struct {
 		name    string
 		want    physic.Temperature
@@ -126,18 +129,18 @@ func TestSense(t *testing.T) {
 				Order: binary.BigEndian},
 			enabled: tt.enabled,
 		}
-		e := &physic.Env{}
-		err := mcp9808.Sense(e)
-		if err == nil && tt.want != e.Temperature {
-			t.Errorf("%s Sense() expected %v but got %v ", tt.name, tt.want, e.Temperature)
+		w := &environment.Weather{}
+		err := mcp9808.SenseWeather(w)
+		if err == nil && tt.want != w.Temperature {
+			t.Errorf("%s SenseWeather() expected %v but got %v ", tt.name, tt.want, w.Temperature)
 		}
 		if err != tt.err {
-			t.Errorf("%s Sense() expected %v but got %v ", tt.name, tt.err, err)
+			t.Errorf("%s SenseWeather() expected %v but got %v ", tt.name, tt.err, err)
 		}
 	}
 }
 
-func TestSenseContinuous(t *testing.T) {
+func TestSenseWeatherContinuous(t *testing.T) {
 	tests := []struct {
 		name     string
 		want     physic.Temperature
@@ -145,7 +148,6 @@ func TestSenseContinuous(t *testing.T) {
 		interval time.Duration
 		tx       []i2ctest.IO
 		enabled  bool
-		Halt     bool
 		err      error
 	}{
 		{
@@ -173,55 +175,66 @@ func TestSenseContinuous(t *testing.T) {
 			err:      errTooShortInterval,
 		},
 		{
-			name: "Halt",
+			name: "normal",
 			tx: []i2ctest.IO{
 				{Addr: 0x18, W: []byte{temperature}, R: []byte{0x00, 0xa0}},
 				{Addr: 0x18, W: []byte{configuration, 0x01, 0x00}, R: nil},
 			},
 			want:     physic.ZeroCelsius + 10*physic.Celsius,
 			res:      Low,
-			interval: 30 * time.Millisecond,
+			interval: time.Minute,
 			enabled:  true,
-			Halt:     true,
 			err:      nil,
 		},
 	}
-	for _, tt := range tests {
-		bus := i2ctest.Playback{
-			Ops:       tt.tx,
-			DontPanic: true,
-		}
-		mcp9808 := &Dev{
-			m: mmr.Dev8{
-				Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
-				Order: binary.BigEndian,
-			},
-			res:     tt.res,
-			enabled: tt.enabled,
-			stop:    make(chan struct{}, 1),
-		}
-
-		env, err := mcp9808.SenseContinuous(tt.interval)
-
-		if tt.Halt {
-			e := <-env
-			err := mcp9808.Halt()
-			if err != tt.err {
-				t.Errorf("SenseContinuous() %s wanted err: %v, but got: %v", tt.name, tt.err, err)
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("#%d_%s", i, tt.name), func(t *testing.T) {
+			bus := i2ctest.Playback{
+				Ops:       tt.tx,
+				DontPanic: true,
 			}
-			if err == nil && e.Temperature != tt.want {
-				t.Errorf("SenseContinuous() %s wanted %v, but got: %v", tt.name, tt.want, e.Temperature)
+			mcp9808 := &Dev{
+				m: mmr.Dev8{
+					Conn:  &i2c.Dev{Bus: &bus, Addr: 0x18},
+					Order: binary.BigEndian,
+				},
+				res:     tt.res,
+				enabled: tt.enabled,
+				stop:    make(chan struct{}, 1),
 			}
-		}
 
-		if err != tt.err {
-			t.Errorf("SenseContinuous() %s wanted err: %v, but got: %v", tt.name, tt.err, err)
-		}
-		mcp9808.Halt()
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			c := make(chan environment.WeatherSample)
+			go func() {
+				defer close(c)
+				mcp9808.SenseWeatherContinuous(ctx, tt.interval, c)
+			}()
+			w := <-c
+			if w.T.IsZero() {
+				t.Fatal("T is not set")
+			}
+			if tt.enabled {
+				if w.Temperature != tt.want {
+					t.Errorf("SenseContinuous() wanted %v, but got: %v", tt.want, w.Temperature)
+				}
+			}
+			if w.Err != tt.err {
+				t.Errorf("SenseContinuous() wanted err: %v, but got: %v", tt.err, w.Err)
+			}
+
+			cancel()
+			if _, ok := <-c; ok {
+				t.Fatal("c should be closed")
+			}
+			if err := bus.Close(); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 
-func TestPrecision(t *testing.T) {
+func TestPrecisionWeather(t *testing.T) {
 	tests := []struct {
 		name string
 		want physic.Temperature
@@ -251,10 +264,10 @@ func TestPrecision(t *testing.T) {
 
 	for _, tt := range tests {
 		d := &Dev{res: tt.res}
-		e := &physic.Env{}
-		d.Precision(e)
-		if e.Temperature != tt.want {
-			t.Errorf("Precision(%s) wanted %v but got %v", tt.name, tt.want, e.Temperature)
+		w := &environment.Weather{}
+		d.PrecisionWeather(w)
+		if w.Temperature != tt.want {
+			t.Errorf("PrecisionWeather(%s) wanted %v but got %v", tt.name, tt.want, w.Temperature)
 		}
 	}
 }

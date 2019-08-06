@@ -5,9 +5,11 @@
 package cci
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2ctest"
 	"periph.io/x/periph/conn/mmr"
@@ -206,36 +208,51 @@ func TestGetTempHousing_fail(t *testing.T) {
 	}
 }
 
-func TestSense(t *testing.T) {
+func TestSenseWeather(t *testing.T) {
 	bus, d := getDev(getOps([]byte{0x0, 0x4, 0x2, 0x10}, []byte{0, 0}))
-	e := physic.Env{}
-	if err := d.Sense(&e); err != nil {
+	w := environment.Weather{}
+	if err := d.SenseWeather(&w); err != nil {
 		t.Fatal(err)
 	}
-	if e.Temperature != 0 {
-		t.Fatal(e)
+	if w.Temperature != 0 {
+		t.Fatal(w)
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestSenseContinuous(t *testing.T) {
-	bus, d := getDev(nil)
-	if _, err := d.SenseContinuous(time.Second); err == nil {
-		t.Fatal("implemented?")
+func TestSenseWeatherContinuous(t *testing.T) {
+	bus, d := getDev(getOps([]byte{0x0, 0x4, 0x2, 0x10}, []byte{0, 0}))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := make(chan environment.WeatherSample)
+	go func() {
+		defer close(c)
+		d.SenseWeatherContinuous(ctx, time.Minute, c)
+	}()
+	w := <-c
+	if w.Err != nil {
+		t.Fatal(w.Err)
+	}
+	if w.T.IsZero() {
+		t.Fatal("T is not set")
+	}
+	cancel()
+	if _, ok := <-c; ok {
+		t.Fatal("c should be closed")
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestPrecision(t *testing.T) {
+func TestPrecisionWeather(t *testing.T) {
 	bus, d := getDev(nil)
-	e := physic.Env{}
-	d.Precision(&e)
-	if e.Temperature != 10*physic.MilliKelvin {
-		t.Fatal(e)
+	w := environment.Weather{}
+	d.PrecisionWeather(&w)
+	if w.Temperature != 10*physic.MilliKelvin {
+		t.Fatal(w)
 	}
 	if err := bus.Close(); err != nil {
 		t.Fatal(err)

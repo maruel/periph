@@ -5,12 +5,14 @@
 package sysfs
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"periph.io/x/periph/conn/environment"
 	"periph.io/x/periph/conn/physic"
 )
 
@@ -40,7 +42,7 @@ func TestThermalSensorByName_success(t *testing.T) {
 	}
 }
 
-func TestThermalSensor_fail(t *testing.T) {
+func TestThermalSensor_Sense_fail(t *testing.T) {
 	defer resetThermal()
 	d := ThermalSensor{name: "cpu", root: "//\000/"}
 	if s := d.String(); s != "cpu" {
@@ -52,9 +54,31 @@ func TestThermalSensor_fail(t *testing.T) {
 	if s := d.Type(); s != "sysfs-thermal: file I/O is inhibited" {
 		t.Fatal(s)
 	}
-	e := physic.Env{}
-	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: file I/O is inhibited" {
+	w := environment.Weather{}
+	if err := d.SenseWeather(&w); err == nil || err.Error() != "sysfs-thermal: file I/O is inhibited" {
 		t.Fatal("should have failed")
+	}
+}
+
+func TestThermalSensor_SenseWeatherContinuous_fail(t *testing.T) {
+	defer resetThermal()
+	d := ThermalSensor{name: "cpu", root: "//\000/"}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := make(chan environment.WeatherSample)
+	go func() {
+		defer close(c)
+		d.SenseWeatherContinuous(ctx, time.Minute, c)
+	}()
+	w := <-c
+	if w.Err == nil || w.Err.Error() != "sysfs-thermal: file I/O is inhibited" {
+		t.Fatal(w.Err)
+	}
+	if w.T.IsZero() {
+		t.Fatal("T is not set")
+	}
+	if _, ok := <-c; ok {
+		t.Fatal("c should be closed")
 	}
 }
 
@@ -138,7 +162,7 @@ func TestThermalSensor_Type_fail_2(t *testing.T) {
 	}
 }
 
-func TestThermalSensor_Sense_success(t *testing.T) {
+func TestThermalSensor_SenseWeather_success(t *testing.T) {
 	defer resetThermal()
 	fileIOOpen = func(path string, flag int) (fileIO, error) {
 		if flag != os.O_RDONLY {
@@ -153,16 +177,16 @@ func TestThermalSensor_Sense_success(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/", sensorFilename: "temp"}
-	e := physic.Env{}
-	if err := d.Sense(&e); err != nil {
+	w := environment.Weather{}
+	if err := d.SenseWeather(&w); err != nil {
 		t.Fatal(err)
 	}
-	if e.Temperature != 42*physic.Celsius+physic.ZeroCelsius {
-		t.Fatal(e.Temperature)
+	if w.Temperature != 42*physic.Celsius+physic.ZeroCelsius {
+		t.Fatal(w.Temperature)
 	}
 }
 
-func TestThermalSensor_Sense_fail_1(t *testing.T) {
+func TestThermalSensor_SenseWeather_fail_1(t *testing.T) {
 	defer resetThermal()
 	fileIOOpen = func(path string, flag int) (fileIO, error) {
 		if flag != os.O_RDONLY {
@@ -177,13 +201,13 @@ func TestThermalSensor_Sense_fail_1(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/", sensorFilename: "temp"}
-	e := physic.Env{}
-	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: not implemented" {
+	w := environment.Weather{}
+	if err := d.SenseWeather(&w); err == nil || err.Error() != "sysfs-thermal: not implemented" {
 		t.Fatal(err)
 	}
 }
 
-func TestThermalSensor_Sense_fail_2(t *testing.T) {
+func TestThermalSensor_SenseWeather_fail_2(t *testing.T) {
 	defer resetThermal()
 	fileIOOpen = func(path string, flag int) (fileIO, error) {
 		if flag != os.O_RDONLY {
@@ -198,13 +222,13 @@ func TestThermalSensor_Sense_fail_2(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/", sensorFilename: "temp"}
-	e := physic.Env{}
-	if err := d.Sense(&e); err == nil || err.Error() != "sysfs-thermal: failed to read temperature" {
+	w := environment.Weather{}
+	if err := d.SenseWeather(&w); err == nil || err.Error() != "sysfs-thermal: failed to read temperature" {
 		t.Fatal(err)
 	}
 }
 
-func TestThermalSensor_Sense_fail_3(t *testing.T) {
+func TestThermalSensor_SenseWeather_fail_3(t *testing.T) {
 	defer resetThermal()
 	fileIOOpen = func(path string, flag int) (fileIO, error) {
 		if flag != os.O_RDONLY {
@@ -219,8 +243,8 @@ func TestThermalSensor_Sense_fail_3(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/", sensorFilename: "temp"}
-	e := physic.Env{}
-	err := d.Sense(&e)
+	w := environment.Weather{}
+	err := d.SenseWeather(&w)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -234,7 +258,7 @@ func TestThermalSensor_Sense_fail_3(t *testing.T) {
 	}
 }
 
-func TestThermalSensor_Precision_Kelvin(t *testing.T) {
+func TestThermalSensor_PrecisionWeather_Kelvin(t *testing.T) {
 	defer resetThermal()
 	fileIOOpen = func(path string, flag int) (fileIO, error) {
 		if flag != os.O_RDONLY {
@@ -249,14 +273,14 @@ func TestThermalSensor_Precision_Kelvin(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/", sensorFilename: "temp"}
-	e := physic.Env{}
-	d.Precision(&e)
-	if e.Temperature != physic.Kelvin {
-		t.Fatal(e.Temperature)
+	w := environment.Weather{}
+	d.PrecisionWeather(&w)
+	if w.Temperature != physic.Kelvin {
+		t.Fatal(w.Temperature)
 	}
 }
 
-func TestThermalSensor_Precision_MilliKelvin(t *testing.T) {
+func TestThermalSensor_PrecisionWeather_MilliKelvin(t *testing.T) {
 	defer resetThermal()
 	fileIOOpen = func(path string, flag int) (fileIO, error) {
 		if flag != os.O_RDONLY {
@@ -271,14 +295,14 @@ func TestThermalSensor_Precision_MilliKelvin(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/", sensorFilename: "temp"}
-	e := physic.Env{}
-	d.Precision(&e)
-	if e.Temperature != physic.MilliKelvin {
-		t.Fatal(e.Temperature)
+	w := environment.Weather{}
+	d.PrecisionWeather(&w)
+	if w.Temperature != physic.MilliKelvin {
+		t.Fatal(w.Temperature)
 	}
 }
 
-func TestThermalSensor_SenseContinuous_success(t *testing.T) {
+func TestThermalSensor_SenseWeatherContinuous_success(t *testing.T) {
 	defer resetThermal()
 	fileIOOpen = func(path string, flag int) (fileIO, error) {
 		if flag != os.O_RDONLY {
@@ -298,23 +322,28 @@ func TestThermalSensor_SenseContinuous_success(t *testing.T) {
 		}
 	}
 	d := ThermalSensor{name: "cpu", root: "//\000/", sensorFilename: "temp"}
-	ch, err := d.SenseContinuous(time.Nanosecond)
-	if err != nil {
-		t.Fatal(err)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := make(chan environment.WeatherSample)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		d.SenseWeatherContinuous(ctx, time.Nanosecond, c)
+	}()
+	w := <-c
+	if w.Temperature != 42*physic.Celsius+physic.ZeroCelsius {
+		t.Fatal(w.Temperature)
 	}
-	defer d.Halt()
-	e := <-ch
-	if e.Temperature != 42*physic.Celsius+physic.ZeroCelsius {
-		t.Fatal(e.Temperature)
+	w = <-c
+	if w.Temperature != 43*physic.Celsius+physic.ZeroCelsius {
+		t.Fatal(w.Temperature)
 	}
-	e = <-ch
-	if e.Temperature != 43*physic.Celsius+physic.ZeroCelsius {
-		t.Fatal(e.Temperature)
+	w = <-c
+	if w.Temperature != 44*physic.Celsius+physic.ZeroCelsius {
+		t.Fatal(w.Temperature)
 	}
-	e = <-ch
-	if e.Temperature != 44*physic.Celsius+physic.ZeroCelsius {
-		t.Fatal(e.Temperature)
-	}
+	cancel()
+	<-done
 }
 
 func TestThermalSensorDriver(t *testing.T) {
