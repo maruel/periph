@@ -16,7 +16,7 @@ import (
 
 func TestAssumption(t *testing.T) {
 	f := gpiotest.Pin{}
-	if f.In(gpio.PullNoChange, gpio.BothEdges) == nil {
+	if f.In(gpio.PullNoChange) == nil {
 		t.Fatal("Using gpiotest.Pin in no edge support mode")
 	}
 	if PollEdge(&f, 20*physic.Hertz) == nil {
@@ -26,7 +26,7 @@ func TestAssumption(t *testing.T) {
 
 func TestPollEdge_Short(t *testing.T) {
 	p := PollEdge(&gpiotest.Pin{}, physic.Hertz)
-	if err := p.In(gpio.PullNoChange, gpio.BothEdges); err != nil {
+	if err := p.In(gpio.PullNoChange); err != nil {
 		t.Fatal(err)
 	}
 	if err := p.Halt(); err != nil {
@@ -58,9 +58,10 @@ func TestPollEdge_Halt(t *testing.T) {
 func TestPollEdge_RisingEdge(t *testing.T) {
 	f := pinLevels{levels: []gpio.Level{gpio.High, gpio.Low, gpio.High}}
 	p := PollEdge(&f, physic.KiloHertz)
-	if err := p.In(gpio.PullNoChange, gpio.RisingEdge); err != nil {
+	if err := p.In(gpio.PullNoChange); err != nil {
 		t.Fatal(err)
 	}
+	// , gpio.RisingEdge
 	if !p.WaitForEdge(-1) {
 		t.Fatal("expected edge")
 	}
@@ -72,9 +73,10 @@ func TestPollEdge_RisingEdge(t *testing.T) {
 func TestPollEdge_FallingEdge(t *testing.T) {
 	f := pinLevels{levels: []gpio.Level{gpio.Low, gpio.High, gpio.Low}}
 	p := PollEdge(&f, physic.KiloHertz)
-	if err := p.In(gpio.PullNoChange, gpio.FallingEdge); err != nil {
+	if err := p.In(gpio.PullNoChange); err != nil {
 		t.Fatal(err)
 	}
+	// , gpio.FallingEdge
 	if !p.WaitForEdge(-1) {
 		t.Fatal("expected edge")
 	}
@@ -86,9 +88,10 @@ func TestPollEdge_FallingEdge(t *testing.T) {
 func TestPollEdge_BothEdges(t *testing.T) {
 	f := pinLevels{levels: []gpio.Level{gpio.High, gpio.Low}}
 	p := PollEdge(&f, physic.KiloHertz)
-	if err := p.In(gpio.PullNoChange, gpio.BothEdges); err != nil {
+	if err := p.In(gpio.PullNoChange); err != nil {
 		t.Fatal(err)
 	}
+	// , gpio.BothEdges
 	if !p.WaitForEdge(-1) {
 		t.Fatal("expected edge")
 	}

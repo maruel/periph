@@ -5,6 +5,7 @@
 package cap1xxx_test
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -29,7 +30,7 @@ func Example() {
 		log.Fatal("invalid alert GPIO pin number")
 	}
 	// We set the alert pin to monitor for interrupts.
-	if err := alertPin.In(gpio.PullUp, gpio.BothEdges); err != nil {
+	if err := alertPin.In(gpio.PullUp); err != nil {
 		log.Fatalf("Can't monitor the alert pin")
 	}
 
@@ -53,24 +54,35 @@ func Example() {
 	}
 
 	fmt.Println("Monitoring for touch events")
-	maxTouches := 42 // Stop the program after 42 touches.
-	for maxTouches > 0 {
-		if alertPin.WaitForEdge(-1) {
-			maxTouches--
-			var statuses [8]cap1xxx.TouchStatus
-			if err := dev.InputStatus(statuses[:]); err != nil {
-				fmt.Printf("Error reading inputs: %v\n", err)
-				continue
-			}
-			// print the status of each sensor
-			for i, st := range statuses {
-				fmt.Printf("#%d: %s\t", i, st)
-			}
-			fmt.Println()
-			// we need to clear the interrupt so it can be triggered again
-			if err := dev.ClearInterrupt(); err != nil {
-				fmt.Println(err, "while clearing the interrupt")
-			}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := make(chan gpio.EdgeSample)
+	go func() {
+		alertPin.Edges(ctx, gpio.BothEdges, c)
+		close(c)
+	}()
+	// Stop the program after 42 touches.
+	for maxTouches := 42; maxTouches > 0; {
+		e := <-c
+		if e.Err != nil {
+			log.Fatal(e.Err)
+			break
+		}
+
+		maxTouches--
+		var statuses [8]cap1xxx.TouchStatus
+		if err := dev.InputStatus(statuses[:]); err != nil {
+			fmt.Printf("Error reading inputs: %v\n", err)
+			continue
+		}
+		// print the status of each sensor
+		for i, st := range statuses {
+			fmt.Printf("#%d: %s\t", i, st)
+		}
+		fmt.Println()
+		// we need to clear the interrupt so it can be triggered again
+		if err := dev.ClearInterrupt(); err != nil {
+			fmt.Println(err, "while clearing the interrupt")
 		}
 	}
 	fmt.Print("\n")

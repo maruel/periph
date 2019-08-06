@@ -53,7 +53,7 @@ func (s *Benchmark) runFastGPIOBenchmark() {
 // This is an intentionally naive benchmark.
 func (s *Benchmark) benchmarkFastReadNaive(b *testing.B) {
 	p := s.p
-	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+	if err := p.In(s.pull); err != nil {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
@@ -69,7 +69,7 @@ func (s *Benchmark) benchmarkFastReadNaive(b *testing.B) {
 // It measures the maximum raw read speed, at least in theory.
 func (s *Benchmark) benchmarkFastReadDiscard(b *testing.B) {
 	p := s.p
-	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+	if err := p.In(s.pull); err != nil {
 		b.Fatal(err)
 	}
 	l := gpio.Low
@@ -87,7 +87,7 @@ func (s *Benchmark) benchmarkFastReadDiscard(b *testing.B) {
 // has any performance impact versus bit packing.
 func (s *Benchmark) benchmarkFastReadSliceLevel(b *testing.B) {
 	p := s.p
-	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+	if err := p.In(s.pull); err != nil {
 		b.Fatal(err)
 	}
 	buf := make([]gpio.Level, b.N)
@@ -102,7 +102,7 @@ func (s *Benchmark) benchmarkFastReadSliceLevel(b *testing.B) {
 // iterate over the bits.
 func (s *Benchmark) benchmarkFastReadBitsLSBLoop(b *testing.B) {
 	p := s.p
-	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+	if err := p.In(s.pull); err != nil {
 		b.Fatal(err)
 	}
 	buf := make([]byte, (b.N+7)/8)
@@ -120,7 +120,7 @@ func (s *Benchmark) benchmarkFastReadBitsLSBLoop(b *testing.B) {
 // iterate over the bits.
 func (s *Benchmark) benchmarkFastReadBitsMSBLoop(b *testing.B) {
 	p := s.p
-	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+	if err := p.In(s.pull); err != nil {
 		b.Fatal(err)
 	}
 	buf := make([]byte, (b.N+7)/8)
@@ -140,7 +140,7 @@ func (s *Benchmark) benchmarkFastReadBitsMSBLoop(b *testing.B) {
 // It is expected to be slightly faster than benchmarkFastReadBitsLSBLoop.
 func (s *Benchmark) benchmarkFastReadBitsLSBUnroll(b *testing.B) {
 	p := s.p
-	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+	if err := p.In(s.pull); err != nil {
 		b.Fatal(err)
 	}
 	buf := make([]byte, (b.N+7)/8)
@@ -182,7 +182,7 @@ func (s *Benchmark) benchmarkFastReadBitsLSBUnroll(b *testing.B) {
 // It is expected to be slightly faster than benchmarkFastReadBitsMSBLoop.
 func (s *Benchmark) benchmarkFastReadBitsMSBUnroll(b *testing.B) {
 	p := s.p
-	if err := p.In(s.pull, gpio.NoEdge); err != nil {
+	if err := p.In(s.pull); err != nil {
 		b.Fatal(err)
 	}
 	buf := make([]byte, (b.N+7)/8)

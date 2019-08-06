@@ -128,10 +128,10 @@ func (s *SmokeTest) Run(f *flag.FlagSet, args []string) error {
 		err = s.testCycle(pl2, pl1)
 	}
 	fmt.Printf("<terminating>\n")
-	if err2 := pl1.In(gpio.PullNoChange, gpio.NoEdge); err2 != nil {
+	if err2 := pl1.In(gpio.PullNoChange); err2 != nil {
 		fmt.Printf("(Exit) Failed to reset %s as input: %s\n", pl1, err2)
 	}
-	if err2 := pl2.In(gpio.PullNoChange, gpio.NoEdge); err2 != nil {
+	if err2 := pl2.In(gpio.PullNoChange); err2 != nil {
 		fmt.Printf("(Exit) Failed to reset %s as input: %s\n", pl1, err2)
 	}
 	return err
@@ -234,10 +234,13 @@ func (s *SmokeTest) testEdgesBoth(p1, p2 gpio.PinIO) error {
 		return err
 	}
 	time.Sleep(s.shortDelay)
-	if err := p1.In(gpio.Float, gpio.BothEdges); err != nil {
+	if err := p1.In(gpio.Float); err != nil {
 		return err
 	}
 	time.Sleep(s.shortDelay)
+
+	// TODO: , gpio.BothEdges
+	// TODO: p1.Edges()
 	if !<-s.expectNoEdge(p1) {
 		fmt.Printf("    warning: there should be no edge right after setting a pin\n")
 	}

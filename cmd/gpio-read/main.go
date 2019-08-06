@@ -6,12 +6,14 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
@@ -60,17 +62,29 @@ func mainImpl() error {
 	if p == nil {
 		return errors.New("specify a valid GPIO pin number")
 	}
-	edge := gpio.NoEdge
-	if *edges {
-		edge = gpio.BothEdges
-	}
-	if err := p.In(pull, edge); err != nil {
+	if err := p.In(pull); err != nil {
 		return err
 	}
 	if *edges {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		cs := make(chan os.Signal, 1)
+		signal.Notify(cs, os.Interrupt)
+		go func() {
+			<-cs
+			cancel()
+		}()
+		ce := make(chan gpio.EdgeSample)
+		go func() {
+			p.Edges(ctx, gpio.BothEdges, ce)
+			close(ce)
+		}()
 		for {
-			p.WaitForEdge(-1)
-			if err := printLevel(p.Read()); err != nil {
+			e := <-ce
+			if e.Err != nil {
+				return e.Err
+			}
+			if err := printLevel(e.Read()); err != nil {
 				// Do not return an error on pipe fail, just exit.
 				return nil
 			}

@@ -107,9 +107,9 @@ type loggingPin struct {
 	start time.Time
 }
 
-func (p *loggingPin) In(pull gpio.Pull, edge gpio.Edge) error {
-	fmt.Printf("  %s %s.In(%s, %s)\n", since(p.start), p, pull, edge)
-	return p.Pin.In(pull, edge)
+func (p *loggingPin) In(pull gpio.Pull) error {
+	fmt.Printf("  %s %s.In(%s)\n", since(p.start), p, pull)
+	return p.Pin.In(pull)
 }
 
 func (p *loggingPin) Out(l gpio.Level) error {
@@ -119,10 +119,10 @@ func (p *loggingPin) Out(l gpio.Level) error {
 
 // ensureConnectivity makes sure they are connected together.
 func ensureConnectivity(p1, p2 *loggingPin) error {
-	if err := p1.In(gpio.PullDown, gpio.NoEdge); err != nil {
+	if err := p1.In(gpio.PullDown); err != nil {
 		return err
 	}
-	if err := p2.In(gpio.PullDown, gpio.NoEdge); err != nil {
+	if err := p2.In(gpio.PullDown); err != nil {
 		return err
 	}
 	time.Sleep(time.Microsecond)
@@ -132,15 +132,15 @@ func ensureConnectivity(p1, p2 *loggingPin) error {
 	if p2.Read() != gpio.Low {
 		return fmt.Errorf("unexpected %s value; expected low", p2)
 	}
-	if err := p2.In(gpio.PullUp, gpio.NoEdge); err != nil {
+	if err := p2.In(gpio.PullUp); err != nil {
 		return err
 	}
 	time.Sleep(time.Microsecond)
 	if p1.Read() != gpio.High {
 		return fmt.Errorf("unexpected %s value; expected high", p1)
 	}
-	if err := p1.In(gpio.Float, gpio.NoEdge); err != nil {
+	if err := p1.In(gpio.Float); err != nil {
 		return err
 	}
-	return p2.In(gpio.Float, gpio.NoEdge)
+	return p2.In(gpio.Float)
 }

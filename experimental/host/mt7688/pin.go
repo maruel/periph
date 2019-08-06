@@ -7,7 +7,6 @@ package mt7688
 import (
 	"context"
 	"errors"
-	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
@@ -172,7 +171,7 @@ func (p *Pin) SetFunc(pin.Func) error {
 // In implements gpio.PinIn.
 //
 // Not implemented yet.
-func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
+func (p *Pin) In(pull gpio.Pull) error {
 	return errors.New("not implemented")
 }
 
@@ -183,11 +182,11 @@ func (p *Pin) Read() gpio.Level {
 	return gpio.Low
 }
 
-// WaitForEdge implements gpio.PinIn.
+// Edges implements gpio.PinIn.
 //
 // Not implemented yet.
-func (p *Pin) WaitForEdge(timeout time.Duration) bool {
-	return false
+func (p *Pin) Edges(ctx context.Context, edge gpio.Edge, c chan<- gpio.EdgeSample) {
+	<-ctx.Done()
 }
 
 // Pull implements gpio.PinIn.

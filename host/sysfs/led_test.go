@@ -36,7 +36,7 @@ func TestLEDMock(t *testing.T) {
 	if s := l.Func(); s != "LED/Off" {
 		t.Fatal(s)
 	}
-	if err := l.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
+	if err := l.In(gpio.PullNoChange); err != nil {
 		t.Fatal(err)
 	}
 	if l := l.Read(); l != gpio.Low {
@@ -49,12 +49,13 @@ func TestLEDMock(t *testing.T) {
 
 func TestLED_not_supported(t *testing.T) {
 	l := LED{number: 42, name: "Glow", root: "/tmp/led/priv/"}
-	if err := l.In(gpio.PullDown, gpio.NoEdge); err == nil {
+	if err := l.In(gpio.PullDown); err == nil {
 		t.Fatal("sysfs-led no real In() support")
 	}
-	if l.WaitForEdge(-1) {
-		t.Fatal("not supported")
-	}
+	c := make(chan gpio.EdgeSample)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	l.Edges(ctx, gpio.BothEdges, c)
 	if pull := l.Pull(); pull != gpio.PullNoChange {
 		t.Fatal(pull)
 	}

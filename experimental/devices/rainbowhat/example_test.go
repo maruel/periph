@@ -5,6 +5,7 @@
 package rainbowhat_test
 
 import (
+	"context"
 	"fmt"
 	"image"
 	"image/color"
@@ -39,8 +40,15 @@ func Example() {
 		if err := led.Out(gpio.Low); err != nil {
 			log.Fatal(err)
 		}
+		c := make(chan gpio.EdgeSample)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go func() {
+			btn.Edges(ctx, gpio.BothEdges, c)
+			close(c)
+		}()
 		for {
-			btn.WaitForEdge(-1)
+			e := <-c
 			if btn.Read() == gpio.Low {
 				if ledState {
 					if err := led.Out(gpio.High); err != nil {

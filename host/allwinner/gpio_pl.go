@@ -155,13 +155,13 @@ func (p *PinPL) SupportedFuncs() []pin.Func {
 func (p *PinPL) SetFunc(f pin.Func) error {
 	switch f {
 	case gpio.FLOAT:
-		return p.In(gpio.Float, gpio.NoEdge)
+		return p.In(gpio.Float)
 	case gpio.IN:
-		return p.In(gpio.PullNoChange, gpio.NoEdge)
+		return p.In(gpio.PullNoChange)
 	case gpio.IN_LOW:
-		return p.In(gpio.PullDown, gpio.NoEdge)
+		return p.In(gpio.PullDown)
 	case gpio.IN_HIGH:
-		return p.In(gpio.PullUp, gpio.NoEdge)
+		return p.In(gpio.PullUp)
 	case gpio.OUT_HIGH:
 		return p.Out(gpio.High)
 	case gpio.OUT_LOW:
@@ -193,12 +193,12 @@ func (p *PinPL) SetFunc(f pin.Func) error {
 }
 
 // In implements gpio.PinIn.
-func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
+func (p *PinPL) In(pull gpio.Pull) error {
 	if !p.available {
 		// We do not want the error message about uninitialized system.
 		return p.wrap(errors.New("not available on this CPU architecture"))
 	}
-	if p.usingEdge && edge == gpio.NoEdge {
+	if p.usingEdge {
 		if err := p.sysfsPin.Halt(); err != nil {
 			return p.wrap(err)
 		}
@@ -211,10 +211,9 @@ func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 		if pull != gpio.PullNoChange {
 			return p.wrap(errors.New("pull cannot be used when subsystem gpiomem not initialized; try running as root?"))
 		}
-		if err := p.sysfsPin.In(pull, edge); err != nil {
+		if err := p.sysfsPin.In(pull); err != nil {
 			return p.wrap(err)
 		}
-		p.usingEdge = edge != gpio.NoEdge
 		return nil
 	}
 	if !p.setFunction(in) {
@@ -232,16 +231,6 @@ func (p *PinPL) In(pull gpio.Pull, edge gpio.Edge) error {
 			drvGPIOPL.gpioMemoryPL.pull[off] = 1 << shift
 		default:
 		}
-	}
-	if edge != gpio.NoEdge {
-		if p.sysfsPin == nil {
-			return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", p.Number()))
-		}
-		// This resets pending edges.
-		if err := p.sysfsPin.In(gpio.PullNoChange, edge); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = true
 	}
 	return nil
 }
@@ -262,12 +251,15 @@ func (p *PinPL) FastRead() gpio.Level {
 	return gpio.Level(drvGPIOPL.gpioMemoryPL.data&(1<<p.offset) != 0)
 }
 
-// WaitForEdge implements gpio.PinIn.
-func (p *PinPL) WaitForEdge(timeout time.Duration) bool {
+// Edges implements gpio.PinIn.
+func (p *PinPL) Edges(ctx context.Context, edge gpio.Edge, c chan<- gpio.EdgeSample) {
 	if p.sysfsPin != nil {
-		return p.sysfsPin.WaitForEdge(timeout)
+		p.usingEdge = true
+		p.sysfsPin.Edges(ctx, edge, c)
+		p.usingEdge = false
+	} else {
+		c <- gpio.EdgeSample{T: time.Now(), Err: p.wrap(fmt.Errorf("pin %d is not exported by sysfs", p.Number()))}
 	}
-	return false
 }
 
 // Pull implements gpio.PinIn.

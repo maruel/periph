@@ -115,7 +115,7 @@ func (p *Pin) SupportedFuncs() []pin.Func {
 func (p *Pin) SetFunc(f pin.Func) error {
 	switch f {
 	case gpio.IN:
-		return p.In(gpio.PullNoChange, gpio.NoEdge)
+		return p.In(gpio.PullNoChange)
 	case gpio.OUT_HIGH:
 		return p.Out(gpio.High)
 	case gpio.OUT, gpio.OUT_LOW:
@@ -126,7 +126,7 @@ func (p *Pin) SetFunc(f pin.Func) error {
 }
 
 // In implements gpio.PinIn.
-func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
+func (p *Pin) In(pull gpio.Pull) error {
 	if pull != gpio.PullNoChange && pull != gpio.Float {
 		return p.wrap(errors.New("doesn't support pull-up/pull-down"))
 	}
@@ -148,51 +148,53 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			return p.wrap(err)
 		}
 	}
-	// Assume that when the pin was switched, the driver doesn't recall if edge
-	// triggering was enabled.
-	if edge != gpio.NoEdge {
-		if p.fEdge == nil {
-			var err error
-			p.fEdge, err = fileIOOpen(p.root+"edge", os.O_RDWR)
-			if err != nil {
+	/*
+		// Assume that when the pin was switched, the driver doesn't recall if edge
+		// triggering was enabled.
+		if edge != gpio.NoEdge {
+			if p.fEdge == nil {
+				var err error
+				p.fEdge, err = fileIOOpen(p.root+"edge", os.O_RDWR)
+				if err != nil {
+					return p.wrap(err)
+				}
+				if err = p.event.MakeEvent(p.fValue.Fd()); err != nil {
+					_ = p.fEdge.Close()
+					p.fEdge = nil
+					return p.wrap(err)
+				}
+			}
+			// Always reset the edge detection mode to none after starting the epoll
+			// otherwise edges are not always delivered, as observed on an Allwinner A20
+			// running kernel 4.14.14.
+			if err := seekWrite(p.fEdge, bNone); err != nil {
 				return p.wrap(err)
 			}
-			if err = p.event.MakeEvent(p.fValue.Fd()); err != nil {
-				_ = p.fEdge.Close()
-				p.fEdge = nil
+			var b []byte
+			switch edge {
+			case gpio.RisingEdge:
+				b = bRising
+			case gpio.FallingEdge:
+				b = bFalling
+			case gpio.BothEdges:
+				b = bBoth
+			}
+			if err := seekWrite(p.fEdge, b); err != nil {
 				return p.wrap(err)
 			}
 		}
-		// Always reset the edge detection mode to none after starting the epoll
-		// otherwise edges are not always delivered, as observed on an Allwinner A20
-		// running kernel 4.14.14.
-		if err := seekWrite(p.fEdge, bNone); err != nil {
-			return p.wrap(err)
+		p.edge = edge
+		// This helps to remove accumulated edges but this is not 100% sufficient.
+		// Most of the time the interrupts are handled promptly enough that this loop
+		// flushes the accumulated interrupt.
+		// Sometimes the kernel may have accumulated interrupts that haven't been
+		// processed for a long time, it can easily be >300µs even on a quite idle
+		// CPU. In this case, the loop below is not sufficient, since the interrupt
+		// will happen afterward "out of the blue".
+		if edge != gpio.NoEdge {
+			p.WaitForEdge(0)
 		}
-		var b []byte
-		switch edge {
-		case gpio.RisingEdge:
-			b = bRising
-		case gpio.FallingEdge:
-			b = bFalling
-		case gpio.BothEdges:
-			b = bBoth
-		}
-		if err := seekWrite(p.fEdge, b); err != nil {
-			return p.wrap(err)
-		}
-	}
-	p.edge = edge
-	// This helps to remove accumulated edges but this is not 100% sufficient.
-	// Most of the time the interrupts are handled promptly enough that this loop
-	// flushes the accumulated interrupt.
-	// Sometimes the kernel may have accumulated interrupts that haven't been
-	// processed for a long time, it can easily be >300µs even on a quite idle
-	// CPU. In this case, the loop below is not sufficient, since the interrupt
-	// will happen afterward "out of the blue".
-	if edge != gpio.NoEdge {
-		p.WaitForEdge(0)
-	}
+	*/
 	return nil
 }
 
@@ -216,30 +218,33 @@ func (p *Pin) Read() gpio.Level {
 	return gpio.Low
 }
 
-// WaitForEdge implements gpio.PinIn.
-func (p *Pin) WaitForEdge(timeout time.Duration) bool {
-	// Run lockless, as the normal use is to call in a busy loop.
-	var ms int
-	if timeout == -1 {
-		ms = -1
-	} else {
-		ms = int(timeout / time.Millisecond)
+// Edges implements gpio.PinIn.
+func (p *Pin) Edges(ctx context.Context, edge gpio.Edge, c chan<- gpio.EdgeSample) {
+	// Validation.
+	done := ctx.Done()
+	select {
+	case <-done:
+		return
+	default:
 	}
-	start := time.Now()
+
 	for {
-		if nr, err := p.event.Wait(ms); err != nil {
-			return false
-		} else if nr == 1 {
-			// TODO(maruel): According to pigpio, the correct way to consume the
-			// interrupt is to call Seek().
-			return true
+		nr, err := p.event.Wait(-1)
+		e := gpio.EdgeSample{T: time.Now(), Err: err}
+		if err == nil {
+			if nr == 1 {
+				e.Edge = gpio.RisingEdge
+			} else {
+				e.Err = errors.New("a signal occurred")
+			}
 		}
-		// A signal occurred.
-		if timeout != -1 {
-			ms = int((timeout - time.Since(start)) / time.Millisecond)
-		}
-		if ms <= 0 {
-			return false
+		select {
+		case c <- e:
+			if e.Err != nil {
+				return
+			}
+		case <-done:
+			return
 		}
 	}
 }
@@ -368,7 +373,7 @@ func (p *Pin) haltEdge() error {
 		}
 		p.edge = gpio.NoEdge
 		// This is still important to remove an accumulated edge.
-		p.WaitForEdge(0)
+		// TODO: p.WaitForEdge(0)
 	}
 	return nil
 }

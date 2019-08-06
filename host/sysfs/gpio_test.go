@@ -66,7 +66,7 @@ func TestPin_Func(t *testing.T) {
 
 func TestPin_In(t *testing.T) {
 	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
-	if p.In(gpio.PullNoChange, gpio.NoEdge) == nil {
+	if p.In(gpio.PullNoChange) == nil {
 		t.Fatal("can't open")
 	}
 	p = Pin{
@@ -75,37 +75,33 @@ func TestPin_In(t *testing.T) {
 		root:       "/tmp/gpio/priv/",
 		fDirection: &fakeGPIOFile{},
 	}
-	if p.In(gpio.PullNoChange, gpio.NoEdge) == nil {
+	if p.In(gpio.PullNoChange) == nil {
 		t.Fatal("can't read direction")
 	}
 
 	p.fDirection = &fakeGPIOFile{data: []byte("out")}
-	if err := p.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
+	if err := p.In(gpio.PullNoChange); err != nil {
 		t.Fatal(err)
 	}
-	if p.In(gpio.PullDown, gpio.NoEdge) == nil {
+	if p.In(gpio.PullDown) == nil {
 		t.Fatal("pull not supported on sysfs-gpio")
 	}
-	if p.In(gpio.PullNoChange, gpio.BothEdges) == nil {
-		t.Fatal("can't open edge")
-	}
+	c := make(chan gpio.EdgeSample)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	p.Edges(ctx, gpio.BothEdges, c)
 
 	p.fEdge = &fakeGPIOFile{}
-	if p.In(gpio.PullNoChange, gpio.NoEdge) == nil {
+	if p.In(gpio.PullNoChange) == nil {
 		t.Fatal("edge I/O failed")
 	}
 
 	p.fEdge = &fakeGPIOFile{data: []byte("none")}
-	if err := p.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
+	if err := p.In(gpio.PullNoChange); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.In(gpio.PullNoChange, gpio.RisingEdge); err != nil {
-		t.Fatal(err)
-	}
-	if err := p.In(gpio.PullNoChange, gpio.FallingEdge); err != nil {
-		t.Fatal(err)
-	}
-	if err := p.In(gpio.PullNoChange, gpio.BothEdges); err != nil {
+	// gpio.RisingEdge, gpio.FallingEdge, gpio.BothEdges
+	if err := p.In(gpio.PullNoChange); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -133,11 +129,13 @@ func TestPin_Read(t *testing.T) {
 	}
 }
 
-func TestPin_WaitForEdges(t *testing.T) {
+func TestPin_Edges(t *testing.T) {
 	p := Pin{number: 42, name: "foo", root: "/tmp/gpio/priv/"}
-	if p.WaitForEdge(-1) {
-		t.Fatal("broken pin doesn't have edge triggered")
-	}
+	c := make(chan gpio.EdgeSample)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	p.Edges(ctx, gpio.BothEdges, c)
+	//t.Fatal("broken pin doesn't have edge triggered")
 }
 
 func TestPin_Pull(t *testing.T) {

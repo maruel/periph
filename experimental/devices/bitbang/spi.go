@@ -288,7 +288,7 @@ func (s *spiConn) initializePins() error {
 		}
 	}
 	if s.sdi != nil {
-		if err := s.sdi.In(gpio.PullUp, gpio.NoEdge); err != nil {
+		if err := s.sdi.In(gpio.PullUp); err != nil {
 			return fmt.Errorf("failed to initialize MISO: %v", err)
 		}
 	}

@@ -107,16 +107,18 @@ func (j *jsonAPI) apiGPIOIn(in []pinIn) ([]string, int) {
 			case "up":
 				pull = gpio.PullUp
 			}
-			edge := gpio.NoEdge
-			switch l.Edge {
-			case "both":
-				edge = gpio.BothEdges
-			case "falling":
-				edge = gpio.FallingEdge
-			case "rising":
-				edge = gpio.RisingEdge
-			}
-			if err := p.In(pull, edge); err != nil {
+			/*
+				edge := gpio.NoEdge
+				switch l.Edge {
+				case "both":
+					edge = gpio.BothEdges
+				case "falling":
+					edge = gpio.FallingEdge
+				case "rising":
+					edge = gpio.RisingEdge
+				}
+			*/
+			if err := p.In(pull); err != nil {
 				out = append(out, err.Error())
 			} else {
 				out = append(out, "")

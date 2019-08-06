@@ -74,7 +74,7 @@ func TestPin_NoMem(t *testing.T) {
 	}
 
 	// gpio.PinIn
-	if p.In(gpio.PullNoChange, gpio.NoEdge) == nil {
+	if p.In(gpio.PullNoChange) == nil {
 		t.Fatal("not initialized")
 	}
 	if d := p.Read(); d != gpio.Low {
@@ -86,8 +86,10 @@ func TestPin_NoMem(t *testing.T) {
 	if d := p.DefaultPull(); d != gpio.PullDown {
 		t.Fatal(d)
 	}
-	if p.WaitForEdge(-1) {
-		t.Fatal("edge not initialized")
+	c := make(chan gpio.EdgeSample, 1)
+	p.Edges(context.Background(), gpio.BothEdges, c)
+	if e := <-c; e.Err == nil || e.Err.Error() != "edge detection not enabled" {
+		t.Fatal(e.Err)
 	}
 
 	// gpio.PinOut
@@ -114,13 +116,13 @@ func TestPin(t *testing.T) {
 	}
 
 	// gpio.PinIn
-	if err := p.In(gpio.PullDown, gpio.NoEdge); err != nil {
+	if err := p.In(gpio.PullDown); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.In(gpio.PullUp, gpio.NoEdge); err != nil {
+	if err := p.In(gpio.PullUp); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.In(gpio.Float, gpio.NoEdge); err != nil {
+	if err := p.In(gpio.Float); err != nil {
 		t.Fatal(err)
 	}
 	if d := p.Read(); d != gpio.Low {

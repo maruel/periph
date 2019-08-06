@@ -36,13 +36,9 @@ func PollEdge(p gpio.PinIO, freq physic.Frequency) gpio.PinIO {
 }
 
 // In implements gpio.PinIO.
-func (p *pollEdge) In(pull gpio.Pull, edge gpio.Edge) error {
+func (p *pollEdge) In(pull gpio.Pull) error {
 	p.edge = gpio.NoEdge
-	err := p.PinIO.In(pull, gpio.NoEdge)
-	if err == nil {
-		p.edge = edge
-	}
-	return err
+	return p.PinIO.In(pull)
 }
 
 // WaitForEdge implements gpio.PinIO.

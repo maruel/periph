@@ -55,16 +55,30 @@ func ExamplePinIn() {
 		log.Fatal("Failed to find GPIO6")
 	}
 
-	// Set it as input, with a pull down (defaults to Low when unconnected) and
-	// enable rising edge triggering.
-	if err := p.In(gpio.PullDown, gpio.RisingEdge); err != nil {
+	// Set it as input, with a pull down (defaults to Low when unconnected).
+	if err := p.In(gpio.PullDown); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("%s is %s\n", p, p.Read())
 
 	// Wait for rising edges (Low -> High) and print when one occur.
-	for p.WaitForEdge(-1) {
-		fmt.Printf("%s went %s\n", p, gpio.High)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := make(chan gpio.EdgeSample)
+	go func() {
+		p.Edges(ctx, gpio.RisingEdge, c)
+		close(c)
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case e := <-c:
+			if e.Err != nil {
+				log.Fatal(e.Err)
+			}
+			fmt.Printf("%s: %s went %s\n", e.T, p, gpio.High)
+		}
 	}
 }
 

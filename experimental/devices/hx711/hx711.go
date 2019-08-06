@@ -56,7 +56,7 @@ type Dev struct {
 // The data pin must support edge detection. If your pin doesn't natively
 // support edge detection you can use PollEdge from gpioutil.
 func New(clk gpio.PinOut, data gpio.PinIn) (*Dev, error) {
-	if err := data.In(gpio.PullDown, gpio.FallingEdge); err != nil {
+	if err := data.In(gpio.PullDown); err != nil {
 		return nil, err
 	}
 	if err := clk.Out(gpio.Low); err != nil {
@@ -189,6 +189,7 @@ func (d *Dev) ReadTimeout(timeout time.Duration) (int32, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if !d.IsReady() {
+		// , gpio.FallingEdge
 		if !d.data.WaitForEdge(timeout) {
 			return 0, ErrTimeout
 		}

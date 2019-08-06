@@ -136,6 +136,18 @@ func ParseDuty(s string) (Duty, error) {
 	return i, nil
 }
 
+// EdgeSample is a sample that occurred at the specified moment.
+//
+// It is used by Edges().
+type EdgeSample struct {
+	Edge Edge
+	// T is the moment at which the edge was detected.
+	T time.Time
+	// Err is set if sensing failed. In this case it can be assumed that
+	// Edges() is aborting.
+	Err error
+}
+
 // PinIn is an input GPIO pin.
 //
 // It may optionally support internal pull resistor and edge based triggering.
@@ -146,14 +158,11 @@ type PinIn interface {
 	pin.Pin
 	// In setups a pin as an input.
 	//
-	// If WaitForEdge() is planned to be called, make sure to use one of the Edge
-	// value. Otherwise, use NoEdge to not generated unneeded hardware interrupts.
-	//
 	// Calling In() will try to empty the accumulated edges but it cannot be 100%
 	// reliable due to the OS (linux) and its driver. It is possible that on a
 	// gpio that is as input, doing a quick Out(), In() may return an edge that
 	// occurred before the Out() call.
-	In(pull Pull, edge Edge) error
+	In(pull Pull) error
 	// Read return the current pin level.
 	//
 	// Behavior is undefined if In() wasn't used before.
@@ -162,25 +171,12 @@ type PinIn interface {
 	// if another process on the host messes up with the pin after In() was
 	// called. In this case, call In() again.
 	Read() Level
-	// WaitForEdge() waits for the next edge or immediately return if an edge
-	// occurred since the last call.
+	// Edges() listens to edges and return the ones detected to the channel until
+	// the context is canceled.
 	//
-	// Only waits for the kind of edge as specified in a previous In() call.
-	// Behavior is undefined if In() with a value other than NoEdge wasn't called
-	// before.
-	//
-	// Returns true if an edge was detected during or before this call. Return
-	// false if the timeout occurred or In() was called while waiting, causing the
-	// function to exit.
-	//
-	// Multiple edges may or may not accumulate between two calls to
-	// WaitForEdge(). The behavior in this case is undefined and is OS driver
-	// specific.
-	//
-	// It is not required to call Read() to reset the edge detection.
-	//
-	// Specify -1 to effectively disable timeout.
-	WaitForEdge(timeout time.Duration) bool
+	// If the context passed in is already canceled, no measurement is done and
+	// nothing is sent to the channel.
+	Edges(ctx context.Context, edge Edge, c chan<- EdgeSample)
 	// Pull returns the internal pull resistor if the pin is set as input pin.
 	//
 	// Returns PullNoChange if the value cannot be read.
@@ -226,9 +222,9 @@ type PinOut interface {
 type PinIO interface {
 	pin.Pin
 	// PinIn
-	In(pull Pull, edge Edge) error
+	In(pull Pull) error
 	Read() Level
-	WaitForEdge(timeout time.Duration) bool
+	Edges(ctx context.Context, edge Edge, c chan<- EdgeSample)
 	Pull() Pull
 	DefaultPull() Pull
 	// PinOut
@@ -292,7 +288,7 @@ func (invalidPin) SetFunc(f pin.Func) error {
 	return errInvalidPin
 }
 
-func (invalidPin) In(Pull, Edge) error {
+func (invalidPin) In(Pull) error {
 	return errInvalidPin
 }
 
@@ -300,8 +296,8 @@ func (invalidPin) Read() Level {
 	return Low
 }
 
-func (invalidPin) WaitForEdge(timeout time.Duration) bool {
-	return false
+func (invalidPin) Edges(ctx context.Context, edge Edge, c chan<- EdgeSample) {
+	<-ctx.Done()
 }
 
 func (invalidPin) Pull() Pull {

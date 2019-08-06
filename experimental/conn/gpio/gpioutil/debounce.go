@@ -5,6 +5,7 @@
 package gpioutil
 
 import (
+	"context"
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
@@ -38,7 +39,7 @@ func Debounce(p gpio.PinIO, denoise, debounce time.Duration, edge gpio.Edge) (gp
 	if denoise == 0 && debounce == 0 {
 		return p, nil
 	}
-	if err := p.In(gpio.PullNoChange, gpio.BothEdges); err != nil {
+	if err := p.In(gpio.PullNoChange); err != nil {
 		return nil, err
 	}
 	return &debounced{
@@ -51,8 +52,8 @@ func Debounce(p gpio.PinIO, denoise, debounce time.Duration, edge gpio.Edge) (gp
 }
 
 // In implements gpio.PinIO.
-func (d *debounced) In(pull gpio.Pull, edge gpio.Edge) error {
-	err := d.PinIO.In(pull, gpio.BothEdges)
+func (d *debounced) In(pull gpio.Pull) error {
+	err := d.PinIO.In(pull)
 	return err
 }
 
@@ -63,11 +64,11 @@ func (d *debounced) Read() gpio.Level {
 	return d.PinIO.Read()
 }
 
-// WaitForEdge implements gpio.PinIO.
+// Edges implements gpio.PinIO.
 //
 // It is the smoothed out value from the underlying gpio.PinIO.
-func (d *debounced) WaitForEdge(timeout time.Duration) bool {
-	return d.PinIO.WaitForEdge(timeout)
+func (d *debounced) Edges(ctx context.Context, edge gpio.Edge, c chan<- gpio.EdgeSample) {
+	d.PinIO.WaitForEdge(ctx, edge, c)
 }
 
 // Halt implements gpio.PinIO.

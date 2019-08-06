@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/pin"
@@ -120,15 +119,16 @@ func TestInvalid(t *testing.T) {
 		t.Fatal(n)
 	}
 	// gpio.PinIn
-	if err := INVALID.In(Float, NoEdge); err != errInvalidPin {
+	if err := INVALID.In(Float); err != errInvalidPin {
 		t.Fatal(err)
 	}
 	if l := INVALID.Read(); l != Low {
 		t.Fatal(l)
 	}
-	if INVALID.WaitForEdge(time.Minute) {
-		t.Fatal("unexpected edge")
-	}
+	c := make(chan EdgeSample)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	INVALID.Edges(ctx, BothEdges, c)
 	if p := INVALID.Pull(); p != PullNoChange {
 		t.Fatal(p)
 	}

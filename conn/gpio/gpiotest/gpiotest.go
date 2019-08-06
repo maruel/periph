@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/physic"
@@ -74,7 +73,7 @@ func (p *Pin) SetFunc(f pin.Func) error {
 }
 
 // In implements gpio.PinIn.
-func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
+func (p *Pin) In(pull gpio.Pull) error {
 	p.Lock()
 	defer p.Unlock()
 	p.P = pull
@@ -83,9 +82,11 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 	} else if pull == gpio.PullUp {
 		p.L = gpio.High
 	}
-	if edge != gpio.NoEdge && p.EdgesChan == nil {
-		return errors.New("gpiotest: please set p.EdgesChan first")
-	}
+	/*
+		if edge != gpio.NoEdge && p.EdgesChan == nil {
+			return errors.New("gpiotest: please set p.EdgesChan first")
+		}
+	*/
 	// Flush any buffered edges.
 	for {
 		select {
@@ -103,19 +104,22 @@ func (p *Pin) Read() gpio.Level {
 	return p.L
 }
 
-// WaitForEdge implements gpio.PinIn.
-func (p *Pin) WaitForEdge(timeout time.Duration) bool {
-	if timeout == -1 {
-		_ = p.Out(<-p.EdgesChan)
-		return true
-	}
-	select {
-	case <-time.After(timeout):
-		return false
-	case l := <-p.EdgesChan:
-		_ = p.Out(l)
-		return true
-	}
+// Edges implements gpio.PinIn.
+func (p *Pin) Edges(ctx context.Context, e gpio.Edge, c chan<- gpio.EdgeSample) {
+	/*
+		if timeout == -1 {
+			_ = p.Out(<-p.EdgesChan)
+			return true
+		}
+		select {
+		case <-time.After(timeout):
+			return false
+		case l := <-p.EdgesChan:
+			_ = p.Out(l)
+			return true
+		}
+	*/
+	<-ctx.Done()
 }
 
 // Pull implements gpio.PinIn.
@@ -157,9 +161,9 @@ func (p *LogPinIO) Real() gpio.PinIO {
 }
 
 // In implements gpio.PinIn.
-func (p *LogPinIO) In(pull gpio.Pull, edge gpio.Edge) error {
-	log.Printf("%s.In(%s, %s)", p, pull, edge)
-	return p.PinIO.In(pull, edge)
+func (p *LogPinIO) In(pull gpio.Pull) error {
+	log.Printf("%s.In(%s)", p, pull)
+	return p.PinIO.In(pull)
 }
 
 // Read implements gpio.PinIn.
@@ -169,12 +173,10 @@ func (p *LogPinIO) Read() gpio.Level {
 	return l
 }
 
-// WaitForEdge implements gpio.PinIn.
-func (p *LogPinIO) WaitForEdge(timeout time.Duration) bool {
-	s := time.Now()
-	r := p.PinIO.WaitForEdge(timeout)
-	log.Printf("%s.WaitForEdge(%s) -> %t after %s", p, timeout, r, time.Since(s))
-	return r
+// Edges implements gpio.PinIn.
+func (p *LogPinIO) Edges(ctx context.Context, e gpio.Edge, c chan<- gpio.EdgeSample) {
+	log.Printf("%s.Edges(%s)", p, e)
+	p.PinIO.Edges(ctx, e, c)
 }
 
 // Out implements gpio.PinOut.

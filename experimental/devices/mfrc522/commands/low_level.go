@@ -50,7 +50,7 @@ func NewLowLevelSPI(spiPort spi.Port, resetPin gpio.PinOut, irqPin gpio.PinIn) (
 		return nil, err
 	}
 	if irqPin != nil {
-		if err := irqPin.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+		if err := irqPin.In(gpio.PullUp); err != nil {
 			return nil, err
 		}
 	}
@@ -198,6 +198,7 @@ func (r *LowLevel) WaitForEdge(timeout time.Duration) error {
 	irqChannel := make(chan bool)
 	go func() {
 		defer close(irqChannel)
+		// , gpio.FallingEdge
 		irqChannel <- r.irqPin.WaitForEdge(timeout)
 	}()
 

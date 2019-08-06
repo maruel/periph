@@ -184,13 +184,13 @@ func (p *Pin) SupportedFuncs() []pin.Func {
 func (p *Pin) SetFunc(f pin.Func) error {
 	switch f {
 	case gpio.FLOAT:
-		return p.In(gpio.Float, gpio.NoEdge)
+		return p.In(gpio.Float)
 	case gpio.IN:
-		return p.In(gpio.PullNoChange, gpio.NoEdge)
+		return p.In(gpio.PullNoChange)
 	case gpio.IN_LOW:
-		return p.In(gpio.PullDown, gpio.NoEdge)
+		return p.In(gpio.PullDown)
 	case gpio.IN_HIGH:
-		return p.In(gpio.PullUp, gpio.NoEdge)
+		return p.In(gpio.PullUp)
 	case gpio.OUT_HIGH:
 		return p.Out(gpio.High)
 	case gpio.OUT_LOW:
@@ -231,15 +231,12 @@ func (p *Pin) SetFunc(f pin.Func) error {
 // Edge detection requires opening a gpio sysfs file handle. The pin will be
 // exported at /sys/class/gpio/gpio*/. Note that the pin will not be unexported
 // at shutdown.
-func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
+func (p *Pin) In(pull gpio.Pull) error {
 	if !p.available {
 		// We do not want the error message about uninitialized system.
 		return p.wrap(errors.New("not available on this CPU architecture"))
 	}
-	if edge != gpio.NoEdge && !p.supportEdge {
-		return p.wrap(errors.New("edge detection is not supported on this pin"))
-	}
-	if p.usingEdge && edge == gpio.NoEdge {
+	if p.usingEdge {
 		if err := p.sysfsPin.Halt(); err != nil {
 			return p.wrap(err)
 		}
@@ -252,10 +249,9 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		if pull != gpio.PullNoChange {
 			return p.wrap(errors.New("pull cannot be used when subsystem gpiomem not initialized; try running as root?"))
 		}
-		if err := p.sysfsPin.In(pull, edge); err != nil {
+		if err := p.sysfsPin.In(pull); err != nil {
 			return p.wrap(err)
 		}
-		p.usingEdge = edge != gpio.NoEdge
 		return nil
 	}
 	p.setFunction(in)
@@ -271,16 +267,6 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			drvGPIO.gpioMemory.groups[p.group].pull[off] = 1 << shift
 		default:
 		}
-	}
-	if edge != gpio.NoEdge {
-		if p.sysfsPin == nil {
-			return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", p.Number()))
-		}
-		// This resets pending edges.
-		if err := p.sysfsPin.In(gpio.PullNoChange, edge); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = true
 	}
 	return nil
 }
@@ -308,15 +294,19 @@ func (p *Pin) FastRead() gpio.Level {
 	return gpio.Level(drvGPIO.gpioMemory.groups[p.group].data&(1<<p.offset) != 0)
 }
 
-// WaitForEdge implements gpio.PinIn.
-//
-// It waits for an edge as previously set using In() or the expiration of a
-// timeout.
-func (p *Pin) WaitForEdge(timeout time.Duration) bool {
-	if p.sysfsPin != nil {
-		return p.sysfsPin.WaitForEdge(timeout)
+// Edges implements gpio.PinIn.
+func (p *Pin) Edges(ctx context.Context, edge gpio.Edge, c chan<- gpio.EdgeSample) {
+	if !p.supportEdge {
+		c <- gpio.EdgeSample{T: time.NoW(), Err: p.wrap(errors.New("edge detection is not supported on this pin"))}
+		return
 	}
-	return false
+	if p.sysfsPin != nil {
+		p.usingEdge = true
+		p.sysfsPin.Edges(ctx, edge, c)
+		p.usingEdge = false
+	} else {
+		c <- gpio.EdgeSample{T: time.Now(), Err: p.wrap(fmt.Errorf("pin %d is not exported by sysfs", p.Number()))}
+	}
 }
 
 // Pull implements gpio.PinIn.

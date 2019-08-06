@@ -328,11 +328,12 @@ func (d *Dev) update(border byte, black []byte, red []byte) (err error) {
 		}
 	}
 
-	if err := d.busy.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+	// , gpio.FallingEdge
+	if err := d.busy.In(gpio.PullUp); err != nil {
 		return err
 	}
 	defer func() {
-		if err2 := d.busy.In(gpio.PullUp, gpio.NoEdge); err2 != nil {
+		if err2 := d.busy.In(gpio.PullUp); err2 != nil {
 			err = err2
 		}
 	}()
@@ -358,11 +359,12 @@ func (d *Dev) reset() (err error) {
 	}
 	time.Sleep(100 * time.Millisecond)
 
-	if err = d.busy.In(gpio.PullUp, gpio.FallingEdge); err != nil {
+	// , gpio.FallingEdge
+	if err = d.busy.In(gpio.PullUp); err != nil {
 		return err
 	}
 	defer func() {
-		if err2 := d.busy.In(gpio.PullUp, gpio.NoEdge); err2 != nil {
+		if err2 := d.busy.In(gpio.PullUp); err2 != nil {
 			err = err2
 		}
 	}()

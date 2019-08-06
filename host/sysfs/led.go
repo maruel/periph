@@ -13,7 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"sync"
-	"time"
 
 	"periph.io/x/periph"
 	"periph.io/x/periph/conn"
@@ -96,12 +95,9 @@ func (l *LED) SetFunc(f pin.Func) error {
 }
 
 // In implements gpio.PinIn.
-func (l *LED) In(pull gpio.Pull, edge gpio.Edge) error {
+func (l *LED) In(pull gpio.Pull) error {
 	if pull != gpio.Float && pull != gpio.PullNoChange {
 		return errors.New("sysfs-led: pull is not supported on LED")
-	}
-	if edge != gpio.NoEdge {
-		return errors.New("sysfs-led: edge is not supported on LED")
 	}
 	return nil
 }
@@ -127,9 +123,9 @@ func (l *LED) Read() gpio.Level {
 	return gpio.Low
 }
 
-// WaitForEdge implements gpio.PinIn.
-func (l *LED) WaitForEdge(timeout time.Duration) bool {
-	return false
+// Edges implements gpio.PinIn.
+func (l *LED) Edges(ctx context.Context, edge gpio.Edge, c chan<- gpio.EdgeSample) {
+	<-ctx.Done()
 }
 
 // Pull implements gpio.PinIn.

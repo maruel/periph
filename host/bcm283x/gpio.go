@@ -309,13 +309,13 @@ func (p *Pin) SetFunc(f pin.Func) error {
 	}
 	switch f {
 	case gpio.FLOAT:
-		return p.In(gpio.Float, gpio.NoEdge)
+		return p.In(gpio.Float)
 	case gpio.IN:
-		return p.In(gpio.PullNoChange, gpio.NoEdge)
+		return p.In(gpio.PullNoChange)
 	case gpio.IN_LOW:
-		return p.In(gpio.PullDown, gpio.NoEdge)
+		return p.In(gpio.PullDown)
 	case gpio.IN_HIGH:
-		return p.In(gpio.PullUp, gpio.NoEdge)
+		return p.In(gpio.PullUp)
 	case gpio.OUT_HIGH:
 		return p.Out(gpio.High)
 	case gpio.OUT_LOW:
@@ -360,21 +360,14 @@ func (p *Pin) SetFunc(f pin.Func) error {
 // possible to 'read back' what value was specified for each pin.
 //
 // Will fail if requesting to change a pin that is set to special functionality.
-//
-// Using edge detection requires opening a gpio sysfs file handle. On Raspbian,
-// make sure the user is member of group 'gpio'. The pin will be exported at
-// /sys/class/gpio/gpio*/. Note that the pin will not be unexported at
-// shutdown.
-//
-// For edge detection, the processor samples the input at its CPU clock rate
-// and looks for '011' to rising and '100' for falling detection to avoid
-// glitches. Because gpio sysfs is used, the latency is unpredictable.
-func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
-	if p.usingEdge && edge == gpio.NoEdge {
-		if err := p.sysfsPin.Halt(); err != nil {
-			return p.wrap(err)
+func (p *Pin) In(pull gpio.Pull) error {
+	/*
+		if p.usingEdge && edge == gpio.NoEdge {
+			if err := p.sysfsPin.Halt(); err != nil {
+				return p.wrap(err)
+			}
 		}
-	}
+	*/
 	if drvGPIO.gpioMemory == nil {
 		if p.sysfsPin == nil {
 			return p.wrap(errors.New("subsystem gpiomem not initialized and sysfs not accessible"))
@@ -382,10 +375,12 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 		if pull != gpio.PullNoChange {
 			return p.wrap(errors.New("pull cannot be used when subsystem gpiomem not initialized"))
 		}
-		if err := p.sysfsPin.In(pull, edge); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = edge != gpio.NoEdge
+		/*
+			if err := p.sysfsPin.In(pull); err != nil {
+				return p.wrap(err)
+			}
+			p.usingEdge = edge != gpio.NoEdge
+		*/
 		return nil
 	}
 	if err := p.haltClock(); err != nil {
@@ -444,16 +439,18 @@ func (p *Pin) In(pull gpio.Pull, edge gpio.Edge) error {
 			drvGPIO.gpioMemory.pullEnableClock[offset] = 0
 		}
 	}
-	if edge != gpio.NoEdge {
-		if p.sysfsPin == nil {
-			return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", p.number))
+	/*
+		if edge != gpio.NoEdge {
+			if p.sysfsPin == nil {
+				return p.wrap(fmt.Errorf("pin %d is not exported by sysfs", p.number))
+			}
+			// This resets pending edges.
+			if err := p.sysfsPin.In(gpio.PullNoChange, edge); err != nil {
+				return p.wrap(err)
+			}
+			p.usingEdge = true
 		}
-		// This resets pending edges.
-		if err := p.sysfsPin.In(gpio.PullNoChange, edge); err != nil {
-			return p.wrap(err)
-		}
-		p.usingEdge = true
-	}
+	*/
 	return nil
 }
 
@@ -487,12 +484,22 @@ func (p *Pin) FastRead() gpio.Level {
 	return gpio.Level((drvGPIO.gpioMemory.level[1] & (1 << uint(p.number&31))) != 0)
 }
 
-// WaitForEdge implements gpio.PinIn.
-func (p *Pin) WaitForEdge(timeout time.Duration) bool {
+// Edges implements gpio.PinIn.
+//
+// Using edge detection requires opening a gpio sysfs file handle. On Raspbian,
+// make sure the user is member of group 'gpio'. The pin will be exported at
+// /sys/class/gpio/gpio*/. Note that the pin will not be unexported at
+// shutdown.
+//
+// For edge detection, the processor samples the input at its CPU clock rate
+// and looks for '011' to rising and '100' for falling detection to avoid
+// glitches. Because gpio sysfs is used, the latency is unpredictable.
+func (p *Pin) Edges(ctx context.Context, edge gpio.Edge, c chan<- gpio.EdgeSample) {
 	if p.sysfsPin != nil {
-		return p.sysfsPin.WaitForEdge(timeout)
+		p.sysfsPin.Edges(ctx, edge, c)
+	} else {
+		c <- gpio.EdgeSample{T: time.Now(), Err: errors.New("edge detection not enabled")}
 	}
-	return false
 }
 
 // Pull implements gpio.PinIn.
@@ -696,7 +703,7 @@ func (p *Pin) StreamIn(pull gpio.Pull, s gpiostream.Stream) error {
 	if drvGPIO.gpioMemory == nil {
 		return p.wrap(errors.New("subsystem gpiomem not initialized"))
 	}
-	if err := p.In(pull, gpio.NoEdge); err != nil {
+	if err := p.In(pull); err != nil {
 		return err
 	}
 	if err := dmaReadStream(p, b); err != nil {

@@ -72,15 +72,16 @@ func NewRainbowHat(ao *apa102.Opts) (*Dev, error) {
 		servo:    rpi.P1_32, // PWM0
 	}
 
-	if err := dev.buttonA.In(gpio.PullUp, gpio.BothEdges); err != nil {
+	// , gpio.BothEdges
+	if err := dev.buttonA.In(gpio.PullUp); err != nil {
 		return nil, err
 	}
 
-	if err := dev.buttonB.In(gpio.PullUp, gpio.BothEdges); err != nil {
+	if err := dev.buttonB.In(gpio.PullUp); err != nil {
 		return nil, err
 	}
 
-	if err := dev.buttonC.In(gpio.PullUp, gpio.BothEdges); err != nil {
+	if err := dev.buttonC.In(gpio.PullUp); err != nil {
 		return nil, err
 	}
 
