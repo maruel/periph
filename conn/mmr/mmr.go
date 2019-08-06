@@ -23,27 +23,12 @@ import (
 // Dev8 is a connection that exposes memory mapped registers in a 8bit address
 // space.
 type Dev8 struct {
-	Conn conn.Conn
+	conn.Conn
 	// Order specifies the binary encoding of words. It is expected to be either
 	// binary.BigEndian or binary.LittleEndian or a specialized implemented if
 	// necessary. A good example of such need is devices communicating 32bits
 	// little endian values encoded over 16bits big endian words.
 	Order binary.ByteOrder
-}
-
-// String implements conn.Conn.
-func (d *Dev8) String() string {
-	return d.Conn.String()
-}
-
-// Duplex implements conn.Conn.
-func (d *Dev8) Duplex() conn.Duplex {
-	return d.Conn.Duplex()
-}
-
-// Tx implements conn.Conn.
-func (d *Dev8) Tx(w, r []byte) error {
-	return d.Conn.Tx(w, r)
 }
 
 // ReadUint8 reads a 8 bit register.
@@ -163,27 +148,12 @@ func (d *Dev8) check() error {
 // Dev16 is a Dev that exposes memory mapped registers in a 16bits address
 // space.
 type Dev16 struct {
-	Conn conn.Conn
+	conn.Conn
 	// Order specifies the binary encoding of words. It is expected to be either
 	// binary.BigEndian or binary.LittleEndian or a specialized implemented if
 	// necessary. A good example of such need is devices communicating 32bits
 	// little endian values encoded over 16bits big endian words.
 	Order binary.ByteOrder
-}
-
-// String implements conn.Conn.
-func (d *Dev16) String() string {
-	return d.Conn.String()
-}
-
-// Duplex implements conn.Conn.
-func (d *Dev16) Duplex() conn.Duplex {
-	return d.Conn.Duplex()
-}
-
-// Tx implements conn.Conn.
-func (d *Dev16) Tx(w, r []byte) error {
-	return d.Conn.Tx(w, r)
 }
 
 // ReadUint8 reads a 8 bit register.
