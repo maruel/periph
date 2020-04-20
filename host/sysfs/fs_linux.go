@@ -83,19 +83,16 @@ func (e epollEvent) String() string {
 // One OS thread is needed for all the events. This is more efficient on single
 // core system.
 type eventsListener struct {
-	// Atomic value set to one once fully initialized.
-	initialized int32
+	initialized int32 // Atomic value set to one once fully initialized.
 
 	// Mapping of file descriptors to wait on with their corresponding channels.
 	mu sync.Mutex
-	// File descriptor of the epoll handle itself.
+	// file descriptor of the epoll handle itself.
 	epollFd int
-	// Pipes to wake up the EpollWait() system call inside loop().
-	r, w *os.File
-	// Return channel to confirm that EpollWait() was woken up.
+	// pipes to wake up the loop()
+	r, w   *os.File
 	wakeUp <-chan time.Time
-	// Map of file handles to user listening channel.
-	fds map[int32]chan<- time.Time
+	fds    map[int32]chan<- time.Time
 }
 
 // init must be called on a fresh instance.
@@ -108,7 +105,6 @@ func (e *eventsListener) init() error {
 	if atomic.LoadInt32(&e.initialized) != 0 {
 		// Was already initialized, but this was done concurrently with another
 		// thread.
-		e.mu.Unlock()
 		return nil
 	}
 	var err error
